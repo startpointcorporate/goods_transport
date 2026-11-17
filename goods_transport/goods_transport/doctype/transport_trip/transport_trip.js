@@ -270,7 +270,7 @@ frappe.ui.form.on("Transport Trip", {
 				get_query: () => ({ filters: { company: frm.doc.company } }) },
 			{ fieldname: "liters", label: __("Maximum en litres"), fieldtype: "Float", precision: 3, reqd: 1 },
 			{ fieldname: "valid_from", label: __("Valide à partir de"), fieldtype: "Datetime",
-				reqd: 1, default: frappe.datetime.now_datetime() },
+				description: __("Laisser vide pour une validité immédiate.") },
 			{ fieldname: "valid_until", label: __("Valide jusqu’au"), fieldtype: "Datetime", reqd: 1 },
 		], async (values) => {
 			const { message } = await frappe.call("goods_transport.goods_transport.services.fuel.authorize", {

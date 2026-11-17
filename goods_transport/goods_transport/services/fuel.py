@@ -58,7 +58,7 @@ def credit(reserve_name: str, liters: str, reference: str):
 
 
 @frappe.whitelist(methods=["POST"])
-def authorize(trip_name: str, reserve_name: str, liters: str, valid_from: str, valid_until: str):
+def authorize(trip_name: str, reserve_name: str, liters: str, valid_until: str, valid_from: str | None = None):
 	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
 	trip.check_permission("write")
 	reserve = locked_reserve(reserve_name)
@@ -74,7 +74,8 @@ def authorize(trip_name: str, reserve_name: str, liters: str, valid_from: str, v
 	if not station.get(reserve.fuel_type.lower()):
 		frappe.throw(_("Ce carburant est indisponible à la station."))
 	amount = quantity(liters)
-	start, end = get_datetime(valid_from), get_datetime(valid_until)
+	start = get_datetime(valid_from) if valid_from else now_datetime()
+	end = get_datetime(valid_until)
 	if end <= max(start, now_datetime()) or start.date() < getdate(reserve.valid_from) or (
 		reserve.valid_until and end.date() > getdate(reserve.valid_until)
 	):
