@@ -245,3 +245,14 @@ frappe.ui.form.on("Transport Trip", {
 		}
 	},
 });
+
+frappe.ui.form.on("Transport Trip", {
+	refresh(frm) {
+		if (frappe.boot.goods_transport_truck_plan && !frm.is_new() && frm.doc.docstatus !== 2 && frm.doc.vehicle) {
+			frm.add_custom_button(__("Plan de route poids lourd"), async () => {
+				await frappe.require("/assets/goods_transport/js/truck_plan.js");
+				goods_transport.truck_plan.open(frm);
+			});
+		}
+	},
+});

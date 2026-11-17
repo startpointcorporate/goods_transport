@@ -1,4 +1,7 @@
-boot_session = "goods_transport.goods_transport.services.toll_routing.extend_bootinfo"
+boot_session = [
+	"goods_transport.goods_transport.services.toll_routing.extend_bootinfo",
+	"goods_transport.goods_transport.services.truck_plan.boot_session",
+]
 
 app_name = "goods_transport"
 app_title = "Goods Transport"
