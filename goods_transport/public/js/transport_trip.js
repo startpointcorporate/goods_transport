@@ -2,6 +2,7 @@
 frappe.ui.form.on("Transport Trip", {
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1 || !frm.doc.driver) return;
+		if (!frappe.model.can_read("Driver Trip Earning")) return;
 
 		frm.add_custom_button(
 			__("Driver Earning"),
