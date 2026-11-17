@@ -20,6 +20,9 @@ doctype_js = {
 
 # Trip lifecycle -> driver earnings + Transport-User sidebar cleanup
 doc_events = {
+	"Sales Invoice": {
+		"before_submit": "goods_transport.goods_transport.services.billing.validate_invoice_bilty_delivery",
+	},
 	"Trip Settlement": {
 		"validate": "goods_transport.goods_transport.services.settlement.attach_driver_pay",
 		"on_submit": "goods_transport.goods_transport.services.earnings.on_trip_settlement_submit",
