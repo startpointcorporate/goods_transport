@@ -15,7 +15,7 @@ from frappe import _
 from frappe.utils import flt, today
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_sales_invoice_from_bilties(bilties: str | list[str]) -> str:
 	"""Create a draft Sales Invoice consolidating the given Bilties.
 
@@ -29,7 +29,10 @@ def create_sales_invoice_from_bilties(bilties: str | list[str]) -> str:
 	if not names:
 		frappe.throw(_("No Bilties supplied."))
 
-	docs = [frappe.get_doc("Bilty", n) for n in names]
+	locked = {name: frappe.get_doc("Bilty", name, for_update=True) for name in sorted(names)}
+	docs = [locked[name] for name in names]
+	for bilty in docs:
+		bilty.check_permission("write")
 	_validate_billable(docs)
 
 	head = docs[0]
@@ -45,10 +48,10 @@ def create_sales_invoice_from_bilties(bilties: str | list[str]) -> str:
 	# If every consolidated Bilty belongs to the same Trip, propagate the
 	# Trip to the SI header so the accounting dimension is set and every
 	# resulting GL Entry is tagged.
-	trips = {d.transport_trip for d in docs if d.transport_trip}
+	trips = {d.transport_trip for d in docs}
 	if len(trips) == 1:
 		trip = next(iter(trips))
-		if si.meta.has_field("transport_trip"):
+		if trip and si.meta.has_field("transport_trip"):
 			si.transport_trip = trip
 
 	for bilty in docs:
@@ -75,7 +78,8 @@ def create_sales_invoice_from_bilties(bilties: str | list[str]) -> str:
 	for bilty in docs:
 		frappe.db.set_value("Bilty", bilty.name, {"sales_invoice": si.name, "status": "Billed"})
 
-	frappe.db.commit()
+	for order in {bilty.transport_order for bilty in docs if bilty.transport_order}:
+		frappe.get_doc("Transport Order", order).refresh_progress()
 	return si.name
 
 
@@ -122,8 +126,45 @@ def _validate_billable(docs: list) -> None:
 			frappe.throw(
 				_("Bilty {0} is already linked to Sales Invoice {1}.").format(d.name, d.sales_invoice)
 			)
+		validate_bilty_delivery(d)
 		if not d.freight_item:
 			frappe.throw(_("Bilty {0} has no Freight Item set.").format(d.name))
+
+
+def validate_bilty_delivery(bilty, *, trip_delivered=False):
+	"""Use submitted POD quantities, never the cached Bilty POD status."""
+	pod = frappe.db.get_value(
+		"Proof of Delivery",
+		{"bilty": bilty.name, "docstatus": 1},
+		["name", "delivered_quantity"],
+		as_dict=True,
+	)
+	if pod:
+		if abs(flt(pod.delivered_quantity) - flt(bilty.total_quantity)) > 1e-9:
+			frappe.throw(_("Bilty {0} does not have a full, valid delivery quantity.").format(bilty.name))
+		return
+
+	if bilty.pod_required:
+		frappe.throw(_("Bilty {0} requires a submitted Proof of Delivery.").format(bilty.name))
+	if not trip_delivered and bilty.status != "Delivered":
+		trip_status = None
+		if bilty.transport_trip:
+			trip_status = frappe.db.get_value(
+				"Transport Trip", {"name": bilty.transport_trip, "docstatus": 1}, "status"
+			)
+		if trip_status not in ("Delivered", "Settled", "Closed"):
+			frappe.throw(_("Delivery has not been recorded for Bilty {0}.").format(bilty.name))
+
+
+def validate_invoice_bilty_delivery(invoice, method=None):
+	"""Also recheck existing drafts and invoices created through native Desk/API."""
+	if invoice.is_return or not invoice.meta.has_field("bilty_references"):
+		return
+	for reference in invoice.bilty_references or []:
+		bilty = frappe.get_doc("Bilty", reference.bilty, for_update=True)
+		if bilty.docstatus != 1:
+			frappe.throw(_("Bilty {0} is not submitted.").format(bilty.name))
+		validate_bilty_delivery(bilty)
 
 
 def _append_freight_row(si, bilty) -> None:

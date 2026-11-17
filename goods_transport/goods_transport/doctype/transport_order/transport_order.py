@@ -54,31 +54,39 @@ class TransportOrder(Document):
 		"""Recompute dispatched/delivered/remaining/billed from linked Bilties."""
 		rows = frappe.db.sql(
 			"""
-			SELECT b.name, b.docstatus, b.total_quantity, b.grand_total, b.pod_status,
-			       b.sales_invoice, b.status
+			SELECT b.total_quantity, b.grand_total, b.pod_required, b.sales_invoice,
+			       b.status, p.delivered_quantity, t.status AS trip_status
 			FROM `tabBilty` b
-			WHERE b.transport_order = %s
+			LEFT JOIN `tabProof of Delivery` p ON p.bilty = b.name AND p.docstatus = 1
+			LEFT JOIN `tabTransport Trip` t ON t.name = b.transport_trip AND t.docstatus = 1
+			WHERE b.transport_order = %s AND b.docstatus = 1
 			""",
 			(self.name,),
 			as_dict=1,
 		)
-		dispatched = sum(flt(r.total_quantity) for r in rows if r.docstatus == 1)
+		dispatched = sum(flt(r.total_quantity) for r in rows)
 		delivered = sum(
-			flt(r.total_quantity)
+			min(max(flt(r.delivered_quantity), 0), flt(r.total_quantity))
+			if r.delivered_quantity is not None
+			else flt(r.total_quantity)
 			for r in rows
-			if r.docstatus == 1 and (r.pod_status == "Received" or r.status in ("Delivered", "POD Received", "Billed", "Closed"))
+			if r.delivered_quantity is not None
+			or (
+				not r.pod_required
+				and (r.status == "Delivered" or r.trip_status in ("Delivered", "Settled", "Closed"))
+			)
 		)
-		billed = sum(flt(r.grand_total) for r in rows if r.docstatus == 1 and r.sales_invoice)
-		remaining = max(flt(self.quantity) - dispatched, 0)
+		billed = sum(flt(r.grand_total) for r in rows if r.sales_invoice)
+		remaining = max(flt(self.quantity) - delivered, 0)
 
 		new_status = self.status
 		if self.docstatus == 1:
 			if dispatched <= 0:
 				new_status = "Confirmed"
-			elif dispatched < flt(self.quantity):
-				new_status = "Partially Dispatched"
 			elif delivered >= flt(self.quantity) - 1e-9:
 				new_status = "Delivered"
+			elif dispatched < flt(self.quantity):
+				new_status = "Partially Dispatched"
 			else:
 				new_status = "Fully Dispatched"
 

@@ -6,7 +6,7 @@ from frappe.utils import flt
 
 class ProofofDelivery(Document):
 	def validate(self):
-		self._validate_bilty_submitted()
+		self.shipped_quantity = self._get_shipped_quantity()
 		self._compute_short_quantity()
 
 	def on_submit(self):
@@ -23,13 +23,18 @@ class ProofofDelivery(Document):
 		if order:
 			frappe.get_doc("Transport Order", order).refresh_progress()
 
+	def before_cancel(self):
+		bilty = frappe.get_doc("Bilty", self.bilty, for_update=True)
+		if bilty.sales_invoice and frappe.db.get_value("Sales Invoice", bilty.sales_invoice, "docstatus") == 1:
+			frappe.throw(_("Cancel the submitted Sales Invoice before cancelling this Proof of Delivery."))
+
 	def on_cancel(self):
 		bilty = frappe.get_doc("Bilty", self.bilty)
 		new_pod_status = "Pending" if bilty.pod_required else "Not Required"
 		# Reset Bilty status if it was moved to POD Received solely by this doc.
 		updates = {"pod_status": new_pod_status}
 		if bilty.status == "POD Received":
-			updates["status"] = "Delivered" if bilty.status == "POD Received" else bilty.status
+			updates["status"] = "Issued"
 		frappe.db.set_value("Bilty", self.bilty, updates, update_modified=False)
 
 		order = bilty.transport_order
@@ -38,14 +43,18 @@ class ProofofDelivery(Document):
 
 	# --- helpers ---------------------------------------------------------
 
-	def _validate_bilty_submitted(self):
-		docstatus = frappe.db.get_value("Bilty", self.bilty, "docstatus")
-		if docstatus is None:
+	def _get_shipped_quantity(self):
+		source = frappe.db.get_value("Bilty", self.bilty, ["docstatus", "total_quantity"], as_dict=True)
+		if source is None:
 			frappe.throw(_("Bilty {0} does not exist.").format(self.bilty))
-		if docstatus != 1:
+		if source.docstatus != 1:
 			frappe.throw(_("Bilty {0} is not submitted.").format(self.bilty))
+
+		return source.total_quantity
 
 	def _compute_short_quantity(self):
 		shipped = flt(self.shipped_quantity)
 		delivered = flt(self.delivered_quantity)
-		self.short_quantity = max(shipped - delivered, 0)
+		if delivered < 0 or delivered > shipped:
+			frappe.throw(_("Delivered quantity must be between zero and the shipped quantity ({0}).").format(shipped))
+		self.short_quantity = shipped - delivered

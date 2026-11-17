@@ -198,13 +198,14 @@ class Bilty(Document):
 @frappe.whitelist()
 def get_unbilled_bilties(customer: str | None = None, company: str | None = None):
 	"""Return submitted Bilties for the customer that are not yet linked to a Sales Invoice."""
-	filters = {"docstatus": 1, "sales_invoice": ["in", ["", None]]}
+	filters = {"docstatus": 1, "sales_invoice": ["is", "not set"]}
 	if customer:
 		filters["billing_customer"] = customer
 	if company:
 		filters["company"] = company
-	return frappe.get_all(
+	return frappe.get_list(
 		"Bilty",
+		limit_page_length=0,
 		filters=filters,
 		fields=[
 			"name",

@@ -17,6 +17,7 @@ def create_trip_from_order(transport_order: str, vehicle: str, quantity: float |
 	established when Bilties are created under the Trip referencing the Order.
 	"""
 	order = frappe.get_doc("Transport Order", transport_order)
+	order.check_permission("read")
 	if order.docstatus != 1:
 		frappe.throw(_("Transport Order {0} must be submitted first.").format(order.name))
 
@@ -44,6 +45,11 @@ def create_bilty_from_trip(
 	"""Create a draft Bilty against a Trip. Fills origin/destination/vehicle
 	from the Trip and, when given, the Order."""
 	trip = frappe.get_doc("Transport Trip", transport_trip)
+	trip.check_permission("read")
+	order = None
+	if transport_order:
+		order = frappe.get_doc("Transport Order", transport_order)
+		order.check_permission("read")
 	if trip.docstatus == 2:
 		frappe.throw(_("Cannot create Bilty against a cancelled Trip."))
 
@@ -68,15 +74,11 @@ def create_bilty_from_trip(
 	# rate_basis and a Transport Order is linked, pull them from the Order.
 	# The JS dialog already prefills these on order-change; this path covers
 	# scripted/API callers that skip the dialog.
-	if transport_order and (rate is None or rate_basis is None):
-		order = frappe.db.get_value(
-			"Transport Order", transport_order, ["rate", "rate_basis"], as_dict=True
-		)
-		if order:
-			if rate is None and order.rate:
-				rate = order.rate
-			if rate_basis is None and order.rate_basis:
-				rate_basis = order.rate_basis
+	if order:
+		if rate is None and order.rate:
+			rate = order.rate
+		if rate_basis is None and order.rate_basis:
+			rate_basis = order.rate_basis
 
 	if rate is not None:
 		bilty.rate = flt(rate)
@@ -93,6 +95,7 @@ def create_bilty_from_trip(
 def create_pod_from_bilty(bilty: str, delivered_quantity: float, receiver_name: str) -> str:
 	"""Convenience: create+submit a POD in one call from a Bilty form action."""
 	source = frappe.get_doc("Bilty", bilty)
+	source.check_permission("read")
 	if source.docstatus != 1:
 		frappe.throw(_("Bilty must be submitted before recording POD."))
 	if frappe.db.exists("Proof of Delivery", {"bilty": bilty, "docstatus": ["!=", 2]}):
@@ -110,8 +113,10 @@ def create_pod_from_bilty(bilty: str, delivered_quantity: float, receiver_name: 
 
 @frappe.whitelist()
 def get_order_bilties(transport_order: str) -> list[dict]:
-	return frappe.get_all(
+	frappe.get_doc("Transport Order", transport_order).check_permission("read")
+	return frappe.get_list(
 		"Bilty",
+		limit_page_length=0,
 		filters={"transport_order": transport_order},
 		fields=[
 			"name",
@@ -137,7 +142,8 @@ def create_transporter_purchase_invoice(
 
 	If `amount` is not supplied, uses `Transport Trip.agreed_vehicle_hire`. The PI is
 	created in draft state — user reviews / adds taxes / submits it themselves."""
-	trip = frappe.get_doc("Transport Trip", transport_trip)
+	trip = frappe.get_doc("Transport Trip", transport_trip, for_update=True)
+	trip.check_permission("write")
 	if trip.docstatus != 1:
 		frappe.throw(_("Trip {0} must be submitted first.").format(trip.name))
 	if not trip.transporter:
@@ -186,8 +192,10 @@ def create_transporter_purchase_invoice(
 
 @frappe.whitelist()
 def get_trip_bilties(transport_trip: str) -> list[dict]:
-	return frappe.get_all(
+	frappe.get_doc("Transport Trip", transport_trip).check_permission("read")
+	return frappe.get_list(
 		"Bilty",
+		limit_page_length=0,
 		filters={"transport_trip": transport_trip},
 		fields=[
 			"name",

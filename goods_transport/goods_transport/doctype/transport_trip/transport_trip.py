@@ -33,8 +33,7 @@ class TransportTrip(Document):
 				self.vehicle_license_plate = plate
 
 	def on_submit(self):
-		if self.status in (None, "", "Planned"):
-			self.db_set("status", "Vehicle Assigned")
+		self.db_set("status", "Vehicle Assigned")
 
 	def on_cancel(self):
 		bilty_count = frappe.db.count("Bilty", {"transport_trip": self.name, "docstatus": ["!=", 2]})
@@ -94,6 +93,32 @@ class TransportTrip(Document):
 		elif self.docstatus == 2:
 			self.status = "Cancelled"
 
+	def validate_delivery(self):
+		from goods_transport.goods_transport.services.billing import validate_bilty_delivery
+
+		bilties = frappe.get_all("Bilty", filters={"transport_trip": self.name, "docstatus": ["<", 2]},
+			fields=["name", "docstatus", "pod_required", "total_quantity", "sales_invoice"])
+		for bilty in bilties:
+			if bilty.docstatus != 1:
+				frappe.throw(_("Submit Bilty {0} before marking the Trip delivered.").format(bilty.name))
+			validate_bilty_delivery(bilty, trip_delivered=True)
+		return bilties
+
+	def refresh_orders(self):
+		orders = frappe.get_all("Bilty", filters={"transport_trip": self.name, "docstatus": 1},
+			pluck="transport_order", distinct=True)
+		for order in filter(None, orders):
+			frappe.get_doc("Transport Order", order).refresh_progress()
+
+	def validate_closure(self):
+		if self.status != "Settled" or not frappe.db.exists("Trip Settlement", {
+			"name": self.trip_settlement, "trip": self.name, "docstatus": 1,
+		}):
+			frappe.throw(_("Submit the Trip Settlement before closing the Trip."))
+		for bilty in self.validate_delivery():
+			if not bilty.sales_invoice or frappe.db.get_value("Sales Invoice", bilty.sales_invoice, "docstatus") != 1:
+				frappe.throw(_("Submit the Sales Invoice for Bilty {0} before closing the Trip.").format(bilty.name))
+
 	# --- called by Bilty controller --------------------------------------
 
 	def refresh_load(self):
@@ -110,11 +135,11 @@ class TransportTrip(Document):
 		)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def advance_status(trip: str, to_status: str) -> str:
-	"""Advance a submitted Trip's status. Enforces forward-only transitions
-	within the sequence, but permits jumps to any later step."""
-	doc = frappe.get_doc("Transport Trip", trip)
+	"""Advance a submitted Trip through the operational milestones."""
+	doc = frappe.get_doc("Transport Trip", trip, for_update=True)
+	doc.check_permission("write")
 	if doc.docstatus != 1:
 		frappe.throw(_("Trip must be submitted before advancing status."))
 	if to_status not in TRIP_STATUS_ORDER:
@@ -123,5 +148,13 @@ def advance_status(trip: str, to_status: str) -> str:
 	target_idx = TRIP_STATUS_ORDER.index(to_status)
 	if target_idx <= current_idx:
 		frappe.throw(_("Cannot move Trip status from {0} back to {1}.").format(doc.status, to_status))
+	if to_status == "Settled":
+		frappe.throw(_("Submit a Trip Settlement to settle the Trip."))
+	if to_status == "Closed":
+		doc.validate_closure()
+	if to_status == "Delivered":
+		doc.validate_delivery()
 	doc.db_set("status", to_status)
+	if to_status == "Delivered":
+		doc.refresh_orders()
 	return to_status

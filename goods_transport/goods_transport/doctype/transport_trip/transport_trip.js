@@ -130,7 +130,8 @@ frappe.ui.form.on("Transport Trip", {
 				__("Advance Status"),
 				() => {
 					const later = TRIP_STATUSES.filter(
-						(s) => TRIP_STATUSES.indexOf(s) > TRIP_STATUSES.indexOf(frm.doc.status),
+						(s) => s !== "Settled" && (s !== "Closed" || frm.doc.status === "Settled") &&
+							TRIP_STATUSES.indexOf(s) > TRIP_STATUSES.indexOf(frm.doc.status),
 					);
 					if (!later.length) {
 						frappe.msgprint(__("Already at final status."));
