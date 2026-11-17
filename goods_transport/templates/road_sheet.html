@@ -1,0 +1,132 @@
+{% set fr = language == "fr" %}
+{% set labels = {
+ "start": "Départ" if fr else "Departure", "via": "Étape" if fr else "Waypoint",
+ "station": "Ravitaillement" if fr else "Fuel stop", "end": "Destination",
+ "pending": "À confirmer" if fr else "Pending confirmation",
+ "authorized": "Autorisé" if fr else "Authorized",
+ "scheduled": "Autorisé à effet différé" if fr else "Authorized for later",
+ "consumed": "Retiré" if fr else "Collected", "inactive": "Autorisation inactive" if fr else "Authorization inactive",
+ "hire": "Location du véhicule" if fr else "Vehicle hire", "allowance": "Indemnité chauffeur" if fr else "Driver allowance"
+} %}
+{% set unavailable = "Indisponible" if fr else "Unavailable" %}
+{% set estimate = "Estimé" if fr else "Estimated" %}
+{% set known = "Montant enregistré" if fr else "Recorded amount" %}
+{% set title = "Feuille de route" if fr else "Driver road sheet" %}
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }} · {{ trip.name | e }}</title>
+<style>
+@page { size: A4; margin: 12mm; }
+body { margin: 0; color: #17283a; background: #fff; font: 9.5pt/1.3 "DejaVu Sans", sans-serif; }
+main { max-width: 185mm; margin: auto; }
+h1 { font-size: 25pt; margin: 4mm 0 1mm; }
+h2 { font-size: 13pt; margin: 3.5mm 0 1.5mm; page-break-after: avoid; }
+p { margin: 2mm 0; }
+a { color: #155881; }
+small { font-size: 8pt; color: #42566b; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; margin-bottom: 2mm; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th, td { padding: 1.25mm; border-bottom: 1px solid #d1dce6; text-align: left; vertical-align: top; overflow-wrap: break-word; }
+th { background: #e8f0f6; }
+header, aside { page-break-inside: avoid; }
+header { padding: 2mm 0 3mm; border-bottom: 2px solid #194c6b; }
+header img { float: right; max-width: 42mm; max-height: 17mm; }
+aside { border-left: 3px solid #996219; padding: 1mm 3mm; background: #fbf3e4; margin-top: 3mm; }
+nav { margin: 4mm auto; text-align: right; max-width: 185mm; }
+nav a { display: inline-block; padding: 2mm 4mm; border: 1px solid #194c6b; border-radius: 3px; }
+@media screen { body { padding: 3mm; } }
+@media print { nav { display: none; } }
+</style>
+</head>
+<body>
+{% if not pdf %}<nav><a href="{{ download | e }}">{{ "Télécharger le PDF" if fr else "Download PDF" }}</a></nav>{% endif %}
+<main>
+<header>
+{% if logo %}<img src="{{ logo | e }}" alt="">{% endif %}
+<strong>{{ company.company_name | e }}</strong>
+<div><small>
+{% for field in ["address_line1", "address_line2", "city", "country"] if address.get(field) %}
+{{ address[field] | e }}{% if not loop.last %}, {% endif %}
+{% endfor %}
+{% for contact in [address.get("phone") or company.phone_no, address.get("email_id") or company.email] if contact %}
+<br>{{ contact | e }}
+{% endfor %}
+</small></div>
+<h1>{{ title }}</h1>
+<strong>{{ trip.name | e }} · {{ date(trip.trip_date) }}</strong>
+</header>
+
+<h2>{{ "Mission" if fr else "Trip overview" }}</h2>
+<table>
+<tr><th>{{ "Chauffeur" if fr else "Driver" }}</th><td>{{ (trip.driver_name or trip.driver or "—") | e }}</td>
+<th>{{ "Camion / immatriculation" if fr else "Truck / registration" }}</th><td>{{ trip.vehicle | e }}{% if trip.vehicle_license_plate and trip.vehicle_license_plate != trip.vehicle %} / {{ trip.vehicle_license_plate | e }}{% endif %}</td></tr>
+<tr><th>{{ "Départ prévu" if fr else "Scheduled departure" }}</th><td>{{ date(trip.departure_time, true) }}</td>
+<th>{{ "Trajet" if fr else "Route" }}</th><td>{{ trip.origin | e }} → {{ trip.destination | e }}</td></tr>
+<tr><th>{{ "Distance totale" if fr else "Total distance" }}</th><td>{{ number(route.distance / 1000) }} km</td>
+<th>{{ "Durée estimée" if fr else "Estimated duration" }}</th><td>{% if route.duration is not none %}{{ (route.duration / 60) | round | int }} min{% else %}{{ unavailable }}{% endif %}</td></tr>
+</table>
+
+{% if stale %}<aside><strong>{{ "Plan modifié ou confirmation antérieure indisponible. Faire vérifier les retraits par l’exploitant avant le départ." if fr else "Plan changed or previous confirmation unavailable. Ask dispatch to verify withdrawals before departure." }}</strong></aside>{% endif %}
+<h2>{{ "Étapes dans l’ordre" if fr else "Route legs in order" }}</h2>
+<table>
+<thead><tr><th style="width:8%">#</th><th>{{ "Lieu" if fr else "Location" }}</th><th>{{ "Type" }}</th><th>{{ "Depuis l’étape précédente" if fr else "From previous stop" }}</th><th>{{ "Navigation" }}</th></tr></thead>
+<tbody>{% for step in steps %}<tr>
+<td>{{ loop.index }}</td><td>{{ step.name | e }}</td><td>{{ labels[step.kind] }}</td>
+<td>{{ number(step.km) }}{% if step.km is not none %} km{% endif %}</td>
+<td><a href="{{ step.gps | e }}">GPS</a><br><small>{{ "%.5f"|format(step.latitude) }}, {{ "%.5f"|format(step.longitude) }}</small></td>
+</tr>{% endfor %}</tbody>
+</table>
+
+<h2>{{ "Péages prévus" if fr else "Expected tolls" }}</h2>
+{% if tolls %}
+<table>
+<thead><tr><th>{{ "Péage" if fr else "Toll plaza" }}</th><th>{{ "Tarif par passage" if fr else "Rate per crossing" }}</th><th>{{ "Navigation" }}</th></tr></thead>
+<tbody>{% for toll in tolls %}<tr><td>{{ toll.name | e }}</td>
+<td>{% if toll.amount is not none %}{{ number(toll.amount, 0) }} XAF · {{ estimate }}{% else %}{{ unavailable }}{% endif %}</td>
+<td><a href="{{ gps(toll.latitude, toll.longitude) | e }}">GPS</a></td></tr>{% endfor %}</tbody>
+</table>
+{% else %}<p>{{ "Aucun péage repéré sur le tracé." if fr else "No toll plazas identified along the route." }}</p>{% endif %}
+
+<h2>{{ "Ravitaillements" if fr else "Fuel stops" }}</h2>
+{% if rows %}
+<table>
+<thead><tr><th style="width:34%">{{ "Station partenaire" if fr else "Partner station" }}</th>
+<th>{{ "Carburant" if fr else "Fuel" }}</th><th>{{ "Prévu (L)" if fr else "Planned (L)" }}</th>
+<th style="width:32%">{{ "Autorisation" if fr else "Authorization" }}</th></tr></thead>
+<tbody>{% for row in rows %}<tr>
+<td>{{ row.station | e }}{% if row.address %}<br><small>{{ row.address | e }}</small>{% endif %}
+<br><a href="{{ row.gps | e }}">GPS</a> <small>{{ "%.5f"|format(row.latitude) }}, {{ "%.5f"|format(row.longitude) }}</small></td>
+<td>{{ ("Gasoline" if row.type == "Essence" and not fr else row.type) | e }}</td>
+<td>{{ number(row.planned, 3) }}</td>
+<td>{{ labels[row.status] }}{% if row.authorized is not none %}<br>{{ number(row.authorized, 3) }} L {{ "autorisés" if fr else "authorized" }}{% endif %}
+{% if row.delivered is not none %}<br>{{ number(row.delivered, 3) }} L {{ "retirés" if fr else "collected" }}{% endif %}</td>
+</tr>{% endfor %}</tbody>
+</table>
+{% elif not fuel_checked %}<p>{{ "Autonomie non évaluée. Aucun arrêt carburant planifié." if fr else "Fuel range not assessed. No fuel stops planned." }}</p>
+{% elif fuel_feasible %}<p>{{ "Aucun ravitaillement prévu." if fr else "No refueling planned." }}</p>
+{% else %}<p>{{ "Aucun plan de ravitaillement réalisable. Contacter l’exploitant." if fr else "No feasible refueling plan. Contact dispatch." }}</p>{% endif %}
+
+<h2>{{ "Coûts prévisionnels" if fr else "Projected costs" }}</h2>
+<table>
+<tr><th>{{ "Péages" if fr else "Tolls" }}</th><td>{% if toll_total is not none %}{{ number(toll_total, 0) }} XAF · {{ estimate }}
+{% else %}{{ unavailable }} · {{ "Sous-total des tarifs connus" if fr else "Subtotal of known rates" }} {{ number(known_tolls, 0) }} XAF ({{ missing_tariffs }} {{ "tarif(s) manquant(s)" if fr else "missing rate(s)" }}){% endif %}</td></tr>
+<tr><th>{{ "Volume total prévu" if fr else "Total planned fuel volume" }}</th><td>{{ number(planned_liters, 3) ~ " L" if planned_liters is not none else unavailable }}</td></tr>
+<tr><th>{{ "Coût du carburant" if fr else "Fuel cost" }}</th><td>{% if fuel_total is not none and fuel_currency %}{{ number(fuel_total, 2) }} {{ fuel_currency | e }} · {{ estimate }}{% else %}{{ unavailable }}{% endif %}</td></tr>
+{% for key, amount in other %}<tr><th>{{ labels[key] }}</th><td>{{ number(amount, 2) }} {{ (trip.currency or "") | e }} · {{ known }}</td></tr>{% endfor %}
+<tr><th>{{ "Total prévisionnel" if fr else "Projected total" }}</th><td><strong>{% if total is not none %}{{ number(total, 2) }} {{ trip.currency | e }} · {{ estimate }}{% else %}{{ unavailable }}{% endif %}</strong></td></tr>
+</table>
+
+<aside>
+<strong>{{ "Consignes au chauffeur" if fr else "Driver instructions" }}</strong>
+<p>{{ "Itinéraire poids lourd indicatif. Vérifier les restrictions routières locales et passer par les postes de pesage." if fr else "Indicative truck route. Verify local road restrictions and use the required weigh stations." }}</p>
+{% if not axles_checked %}<p>{{ "Vérifier les charges aux essieux avant le départ." if fr else "Check axle loads before departure." }}</p>{% endif %}
+{% if shortfall %}<p><strong>{{ "Autonomie insuffisante. Contacter l’exploitant avant le départ." if fr else "Insufficient fuel range. Contact dispatch before departure." }}</strong></p>{% endif %}
+{% if rows %}<p>{{ "Vérifier la disponibilité des retraits auprès de l’exploitant avant le départ." if fr else "Confirm withdrawal availability with dispatch before departure." }}</p>{% endif %}
+</aside>
+<p><small>{{ "Générée le" if fr else "Generated on" }} {{ date(generated, true) }}</small></p>
+</main>
+</body>
+</html>

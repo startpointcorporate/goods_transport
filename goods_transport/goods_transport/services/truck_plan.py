@@ -216,7 +216,10 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 		args = dict(cargo_kg=cargo_kg, cargo_m3=cargo_m3, departure_liters=departure_liters,
 			via=via, axle_loads=axle_loads)
 		snapshot = stored.get("confirmed_forecast")
-		if snapshot and stored["signature"] == plan_signature(trip, args, snapshot):
+		original_args = {key: stored.get(key) for key in args}
+		# Frappe may coerce a request integer to float. Keep the stored representation
+		# for signature verification once the input values have been matched.
+		if snapshot and args == original_args and stored["signature"] == plan_signature(trip, original_args, snapshot):
 			fuel = snapshot
 			current = fetch_route(url, fuel["waypoints"], fuel_stop=True)
 			if not current or abs(current["distance"] - fuel["distance"]) > 1:

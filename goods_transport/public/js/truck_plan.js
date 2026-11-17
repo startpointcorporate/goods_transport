@@ -21,7 +21,8 @@ goods_transport.truck_plan.open = function (frm) {
 		primary_action_label: __("Calculer le plan"),
 		async primary_action(values) {
 			const args = { trip_name: frm.doc.name, ...values };
-			if (values.departure_liters == null || values.departure_liters === "") delete args.departure_liters;
+			const fuelInput = dialog.fields_dict.departure_liters?.$input;
+			if (!fuelInput || fuelInput.val().trim() === "") delete args.departure_liters;
 			const inputsMatch = ["cargo_kg", "cargo_m3", "departure_liters", "via", "axle_loads"].every(
 				(key) => String(saved[key] ?? "") === String(values[key] ?? ""));
 			if ("departure_liters" in args && inputsMatch && frm.doc.fuel_stop_reserve && !saved.authorization_codes) {
@@ -172,6 +173,37 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 				});
 		}
 	}
+	const print = $("<button>").attr("type", "button").addClass("btn btn-default")
+		.text(__("Feuille de route PDF")).appendTo(body);
+	print.on("click", () => {
+		if (frm.is_dirty()) {
+			frappe.msgprint(__("Enregistrez la mission avant de générer la feuille de route."));
+			return;
+		}
+		const { vehicle, trip_name, ...inputs } = args;
+		const modified = frm.doc.modified;
+		if (plan.fuel?.feasible && !plan.fuel.confirmed) {
+			inputs.selected_reserves = plan.fuel.stops.map((stop) => stop.reserve);
+		}
+		const picker = new frappe.ui.Dialog({
+			title: __("Feuille de route PDF"),
+			fields: [{
+				fieldname: "language", label: __("Langue"), fieldtype: "Select",
+				options: ["Français", "English"], default: "Français", reqd: 1,
+			}],
+			primary_action_label: __("Prévisualiser"),
+			primary_action({ language }) {
+				const query = new URLSearchParams({
+					trip_name, language: language === "English" ? "en" : "fr",
+					inputs: JSON.stringify(inputs), modified,
+				});
+				window.open("/api/method/goods_transport.goods_transport.services.road_sheet.render?" + query,
+					"_blank", "noopener");
+				picker.hide();
+			},
+		});
+		picker.show();
+	});
 	const frame = () => { map.invalidateSize(); map.fitBounds(truck.getBounds().pad(0.10)); };
 	dialog.$wrapper.one("shown.bs.modal", frame).one("hidden.bs.modal", () => map.remove());
 	frame();
