@@ -1,3 +1,5 @@
+boot_session = "goods_transport.goods_transport.services.toll_routing.extend_bootinfo"
+
 app_name = "goods_transport"
 app_title = "Goods Transport"
 app_publisher = "Techs Arena"
