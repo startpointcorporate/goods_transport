@@ -1,5 +1,6 @@
 """Planning estimates for the Congo truck routing service."""
 
+from json import dumps
 from math import cos, hypot, isfinite, radians
 
 import frappe
@@ -20,6 +21,7 @@ CEMAC = {
 
 def boot_session(bootinfo):
 	bootinfo.goods_transport_truck_plan = bool(frappe.conf.get("goods_transport_truck_osrm_url"))
+	bootinfo.goods_transport_partner_fuel = bool(frappe.conf.get("goods_transport_partner_fuel"))
 
 
 def vehicle_limits(vehicle, cargo_kg, cargo_m3, axle_group_loads):
@@ -54,17 +56,20 @@ def number(value, default=0):
 	return float(default if value is None else value)
 
 
-def fetch_route(base, locations):
+def fetch_route(base, locations, *, fuel_stop=False):
 	query = ";".join(f"{lon:.7f},{lat:.7f}" for lon, lat in locations)
 	try:
 		response = requests.get(f"{base.rstrip('/')}/route/v1/driving/{query}", params={
 			"overview": "full", "geometries": "geojson",
 			"radiuses": ";".join(["1000"] * len(locations)),
+			**({"continue_straight": "true"} if fuel_stop else {}),
 		}, timeout=(3, 15))
 		payload = response.json()
 		if payload.get("code") == "Ok":
 			return payload["routes"][0]
 		if payload.get("code") in ("NoRoute", "NoSegment"):
+			if fuel_stop:
+				return None
 			frappe.throw("Aucun itinéraire dans le graphe pour ces étapes.")
 	except (requests.RequestException, ValueError, KeyError, IndexError):
 		pass
@@ -111,7 +116,8 @@ def planned_tolls(path, stops, date, category):
 
 
 @frappe.whitelist()
-def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = None, axle_loads: str = ""):
+def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = None, axle_loads: str = "",
+		departure_liters: float | None = None, selected_reserve: str | None = None):
 	"""Use persisted trip, vehicle and station records, subject to their Desk permissions."""
 	url = frappe.conf.get("goods_transport_truck_osrm_url")
 	if not url or not frappe.conf.get("goods_transport_osrm_url"):
@@ -151,6 +157,12 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 			frappe.throw("Coordonnées GPS manquantes ou invalides pour {0}.".format(name))
 		points.append((lon, lat))
 	truck = fetch_route(url, points)
+	fuel = None
+	if departure_liters is not None and frappe.conf.get("goods_transport_partner_fuel"):
+		from .fuel_plan import estimate
+
+		fuel, truck, points = estimate(trip, vehicle, points, truck, departure_liters,
+			lambda waypoints: fetch_route(url, waypoints, fuel_stop=True), selected_reserve)
 	car = fetch_route(frappe.conf.goods_transport_osrm_url, points)
 	path = truck["geometry"]["coordinates"]
 	stations = [
@@ -163,5 +175,23 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 		"truck": truck, "car": car, "tolls": tolls, "class": category, "gross_kg": gross,
 		"known_subtotal": sum(toll["amount"] for toll in tolls if toll["amount"] is not None),
 		"missing_tariffs": sum(toll["amount"] is None for toll in tolls),
-		"axle_loads_entered": bool(axles),
+		"axle_loads_entered": bool(axles), "fuel": fuel,
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def select_fuel_stop(trip_name: str, cargo_kg: float, cargo_m3: float, departure_liters: float,
+		selected_reserve: str, via: str | None = None, axle_loads: str = ""):
+	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
+	trip.check_permission("write")
+	if trip.docstatus == 2 or not frappe.conf.get("goods_transport_partner_fuel"):
+		frappe.throw("La sélection d’un arrêt carburant est indisponible.")
+	plan = preview(trip_name, cargo_kg, cargo_m3, via, axle_loads, departure_liters, selected_reserve)
+	frappe.db.set_value("Transport Trip", trip_name, {
+		"fuel_stop_reserve": selected_reserve,
+		"fuel_plan_inputs": dumps({
+			"cargo_kg": cargo_kg, "cargo_m3": cargo_m3, "departure_liters": departure_liters,
+			"via": via, "axle_loads": axle_loads,
+		}),
+	})
+	return plan

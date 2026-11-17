@@ -256,3 +256,27 @@ frappe.ui.form.on("Transport Trip", {
 		}
 	},
 });
+
+frappe.ui.form.on("Transport Trip", {
+	refresh(frm) {
+		if (!frappe.boot.goods_transport_partner_fuel || frm.is_new()) return;
+		frm.add_custom_button(__("Autorisations"), () => frappe.set_route("List", "Fuel Authorization", {
+			trip: frm.doc.name,
+		}), __("Carburant"));
+		if (frm.doc.docstatus === 2 || !frm.doc.vehicle || !frm.doc.driver || !frm.perm[0]?.write) return;
+		frm.add_custom_button(__("Autoriser un retrait"), () => frappe.prompt([
+			{ fieldname: "reserve_name", label: __("Réserve contractuelle"), fieldtype: "Link",
+				options: "Fuel Contract Reserve", reqd: 1, default: frm.doc.fuel_stop_reserve,
+				get_query: () => ({ filters: { company: frm.doc.company } }) },
+			{ fieldname: "liters", label: __("Maximum en litres"), fieldtype: "Float", precision: 3, reqd: 1 },
+			{ fieldname: "valid_from", label: __("Valide à partir de"), fieldtype: "Datetime",
+				reqd: 1, default: frappe.datetime.now_datetime() },
+			{ fieldname: "valid_until", label: __("Valide jusqu’au"), fieldtype: "Datetime", reqd: 1 },
+		], async (values) => {
+			const { message } = await frappe.call("goods_transport.goods_transport.services.fuel.authorize", {
+				trip_name: frm.doc.name, ...values,
+			});
+			frappe.set_route("Form", "Fuel Authorization", message);
+		}, __("Autoriser un ravitaillement")), __("Carburant"));
+	},
+});

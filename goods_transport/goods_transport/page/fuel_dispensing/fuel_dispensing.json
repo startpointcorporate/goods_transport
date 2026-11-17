@@ -1,0 +1,9 @@
+{
+ "doctype": "Page",
+ "module": "Goods Transport",
+ "name": "fuel-dispensing",
+ "page_name": "fuel-dispensing",
+ "standard": "Yes",
+ "title": "Ravitaillement partenaire",
+ "roles": []
+}

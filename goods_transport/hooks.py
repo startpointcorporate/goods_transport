@@ -311,3 +311,9 @@ add_to_apps_screen = [
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+scheduler_events = {
+	"cron": {
+		"*/5 * * * *": ["goods_transport.goods_transport.services.fuel.expire"],
+	},
+}

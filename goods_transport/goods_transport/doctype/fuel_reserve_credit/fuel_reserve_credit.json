@@ -1,0 +1,64 @@
+{
+ "doctype": "DocType",
+ "name": "Fuel Reserve Credit",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "track_changes": 1,
+ "allow_rename": 0,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1
+  }
+ ],
+ "field_order": [
+  "reserve",
+  "company",
+  "liters",
+  "reference"
+ ],
+ "fields": [
+  {
+   "fieldname": "reserve",
+   "fieldtype": "Link",
+   "label": "Reserve",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Fuel Contract Reserve"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "reqd": 1,
+   "options": "Company"
+  },
+  {
+   "fieldname": "liters",
+   "fieldtype": "Float",
+   "label": "Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ]
+}
