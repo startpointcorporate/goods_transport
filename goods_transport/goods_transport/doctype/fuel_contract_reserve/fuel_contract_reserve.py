@@ -12,6 +12,8 @@ class FuelContractReserve(Document):
 			frappe.throw(_("La station doit appartenir à la société et distribuer ce carburant."))
 		if self.valid_until and getdate(self.valid_until) < getdate(self.valid_from):
 			frappe.throw(_("La fin du contrat doit suivre son début."))
+		if self.price_currency and self.price_per_liter < 0:
+			frappe.throw(_("Le prix par litre doit être positif ou nul."))
 		if not self.is_new():
 			frappe.throw(_("Les conditions et les soldes de la réserve sont verrouillés."))
 		for field in ("remaining_liters", "reserved_liters", "available_liters", "consumed_liters"):

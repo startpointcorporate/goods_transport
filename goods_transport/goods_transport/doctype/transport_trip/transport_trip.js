@@ -280,3 +280,25 @@ frappe.ui.form.on("Transport Trip", {
 		}, __("Autoriser un ravitaillement")), __("Carburant"));
 	},
 });
+
+
+frappe.ui.form.on("Transport Trip", {
+	refresh(frm) {
+		if (!frappe.boot.goods_transport_partner_fuel || frm.is_new() || !frm.perm[0]?.write
+			|| frm.doc.docstatus === 2) return;
+		const plan = JSON.parse(frm.doc.fuel_plan_inputs || "{}");
+		if (!plan.signature || !plan.selected_reserves?.length || plan.authorization_codes) return;
+		frm.add_custom_button(__("Autoriser les arrêts du plan"), () => frappe.prompt([
+			{ fieldname: "valid_from", label: __("Valide à partir de"), fieldtype: "Datetime",
+				description: __("Laisser vide pour une validité immédiate.") },
+			{ fieldname: "valid_until", label: __("Valide jusqu’au"), fieldtype: "Datetime", reqd: 1 },
+		], async (values) => {
+			await frappe.call({
+				method: "goods_transport.goods_transport.services.truck_plan.confirm_fuel_plan",
+				args: { trip_name: frm.doc.name, signature: plan.signature, ...values }, freeze: true,
+			});
+			await frm.reload_doc();
+			frappe.set_route("List", "Fuel Authorization", { trip: frm.doc.name });
+		}, __("Autoriser les ravitaillements")), __("Carburant"));
+	},
+});

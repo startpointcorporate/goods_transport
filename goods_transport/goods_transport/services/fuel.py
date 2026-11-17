@@ -61,7 +61,10 @@ def credit(reserve_name: str, liters: str, reference: str):
 def authorize(trip_name: str, reserve_name: str, liters: str, valid_until: str, valid_from: str | None = None):
 	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
 	trip.check_permission("write")
-	reserve = locked_reserve(reserve_name)
+	return issue(trip, locked_reserve(reserve_name), liters, valid_until, valid_from)
+
+
+def issue(trip, reserve, liters, valid_until, valid_from=None):
 	reserve.check_permission("read")
 	if trip.company != reserve.company or trip.docstatus == 2 or not trip.vehicle or not trip.driver:
 		frappe.throw(_("La mission doit être active et avoir un camion et un chauffeur de la société."))
@@ -75,6 +78,8 @@ def authorize(trip_name: str, reserve_name: str, liters: str, valid_until: str, 
 		frappe.throw(_("Ce carburant est indisponible à la station."))
 	amount = quantity(liters)
 	start = get_datetime(valid_from) if valid_from else now_datetime()
+	if not valid_until:
+		frappe.throw(_("Renseignez la fin de validité."))
 	end = get_datetime(valid_until)
 	if end <= max(start, now_datetime()) or start.date() < getdate(reserve.valid_from) or (
 		reserve.valid_until and end.date() > getdate(reserve.valid_until)

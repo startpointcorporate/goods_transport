@@ -1,11 +1,12 @@
 """Planning estimates for the Congo truck routing service."""
 
-from json import dumps
+from hashlib import sha256
+from json import dumps, loads
 from math import cos, hypot, isfinite, radians
 
 import frappe
 import requests
-from frappe.utils import getdate
+from frappe.utils import get_datetime, getdate, now_datetime
 
 ENVELOPE = {"height": 4, "width": 2.55, "length": 18.75, "ptac": 50000}
 # Annex 4.2.1 of the LCR operating regulation (decree 2023-1663).
@@ -115,10 +116,51 @@ def planned_tolls(path, stops, date, category):
 	return sorted(estimates, key=lambda stop: stop["position_m"])
 
 
+def fetch_distances(base, points):
+	def query(service, locations, params):
+		coords = ";".join(f"{lon:.7f},{lat:.7f}" for lon, lat in locations)
+		return requests.get(f"{base.rstrip('/')}/{service}/v1/driving/{coords}",
+			params=params, timeout=(3, 12)).json()
+
+	try:
+		radii = ";".join(["1000"] * len(points))
+		data = query("table", points, {"annotations": "distance", "radiuses": radii})
+		if data.get("code") == "Ok":
+			return data["distances"]
+		if data.get("code") == "NoSegment":
+			reachable = [i for i, point in enumerate(points) if
+				query("nearest", [point], {"radiuses": "1000"}).get("code") == "Ok"]
+			matrix = [[None] * len(points) for _ in points]
+			if len(reachable) >= 2:
+				values = fetch_distances(base, [points[i] for i in reachable]) if len(reachable) < len(points) else None
+				if values is None:
+					frappe.throw("Le graphe poids lourd ne peut pas rattacher ces points.")
+				for i, source in enumerate(reachable):
+					for j, target in enumerate(reachable):
+						matrix[source][target] = values[i][j]
+			return matrix
+	except (requests.RequestException, ValueError, KeyError):
+		pass
+	frappe.throw("La matrice de distances poids lourd est temporairement indisponible.")
+
+
+def parse_reserves(value):
+	try:
+		names = loads(value) if isinstance(value, str) else value
+	except ValueError:
+		names = False
+	if names is not None and (not isinstance(names, list) or len(names) > 48
+			or any(not isinstance(name, str) or not name for name in names) or len(set(names)) != len(names)):
+		frappe.throw("Sélectionnez des réserves distinctes dans l’ordre du trajet.")
+	return names
+
+
 @frappe.whitelist()
 def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = None, axle_loads: str = "",
-		departure_liters: float | None = None, selected_reserve: str | None = None):
+		departure_liters: float | None = None, selected_reserve: str | None = None,
+		selected_reserves: str | list[str] | None = None, confirmed: bool = False):
 	"""Use persisted trip, vehicle and station records, subject to their Desk permissions."""
+	selected_reserves = parse_reserves(selected_reserves)
 	url = frappe.conf.get("goods_transport_truck_osrm_url")
 	if not url or not frappe.conf.get("goods_transport_osrm_url"):
 		frappe.throw("Le routage poids lourds est indisponible sur ce site.")
@@ -157,20 +199,43 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 			frappe.throw("Coordonnées GPS manquantes ou invalides pour {0}.".format(name))
 		points.append((lon, lat))
 	truck = fetch_route(url, points)
-	fuel = None
-	if departure_liters is not None and frappe.conf.get("goods_transport_partner_fuel"):
-		from .fuel_plan import estimate
-
-		fuel, truck, points = estimate(trip, vehicle, points, truck, departure_liters,
-			lambda waypoints: fetch_route(url, waypoints, fuel_stop=True), selected_reserve)
-	car = fetch_route(frappe.conf.goods_transport_osrm_url, points)
-	path = truck["geometry"]["coordinates"]
+	car_points = points
 	stations = [
 		frappe.get_doc("Transport Location", item.name) for item in frappe.get_list(
 			"Transport Location", filters={"location_type": "Péage", "is_active": 1}, limit_page_length=0,
 		)
 	]
-	tolls = planned_tolls(path, stations, getdate(trip.trip_date), category)
+	def tolls_on(route):
+		return planned_tolls(route["geometry"]["coordinates"], stations, getdate(trip.trip_date), category)
+
+	fuel = None
+	if departure_liters is not None and frappe.conf.get("goods_transport_partner_fuel"):
+		from .fuel_plan import estimate
+
+		stored = loads(trip.fuel_plan_inputs or "{}") if confirmed else {}
+		args = dict(cargo_kg=cargo_kg, cargo_m3=cargo_m3, departure_liters=departure_liters,
+			via=via, axle_loads=axle_loads)
+		snapshot = stored.get("confirmed_forecast")
+		if snapshot and stored["signature"] == plan_signature(trip, args, snapshot):
+			fuel = snapshot
+			current = fetch_route(url, fuel["waypoints"], fuel_stop=True)
+			if not current or abs(current["distance"] - fuel["distance"]) > 1:
+				frappe.throw("Le graphe routier a changé depuis la confirmation. Consultez les retraits déjà autorisés.")
+			truck = current
+			fuel["confirmed"] = True
+			from .fuel import AUTHORIZATION
+			history = frappe.get_list(AUTHORIZATION, filters={"trip": trip.name}, fields=[
+				"status", "authorized_liters", "delivered_liters", "valid_until"], limit_page_length=0)
+			fuel["authorized_liters"] = sum(row.authorized_liters for row in history
+				if row.status == "Reserved" and row.valid_until > now_datetime())
+			fuel["delivered_liters"] = sum(row.delivered_liters or 0 for row in history if row.status == "Consumed")
+		else:
+			fuel, truck, points = estimate(trip, vehicle, points, truck, departure_liters,
+				lambda waypoints: fetch_route(url, waypoints, fuel_stop=True),
+				lambda waypoints: fetch_distances(url, waypoints),
+				selected_reserves or ([selected_reserve] if selected_reserve else None), tolls_on)
+	car = fetch_route(frappe.conf.goods_transport_osrm_url, car_points)
+	tolls = tolls_on(truck)
 	return {
 		"truck": truck, "car": car, "tolls": tolls, "class": category, "gross_kg": gross,
 		"known_subtotal": sum(toll["amount"] for toll in tolls if toll["amount"] is not None),
@@ -179,19 +244,79 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 	}
 
 
+def plan_signature(trip, args, forecast):
+	content = [trip.name, trip.company, trip.vehicle, trip.driver, trip.origin, trip.destination,
+		str(trip.trip_date), args, [(s["reserve"], s["refill_liters"], s["leg_km"],
+			s["latitude"], s["longitude"]) for s in forecast["stops"]], forecast.get("last_leg_km")]
+	return sha256(dumps(content, sort_keys=True).encode()).hexdigest()
+
+
 @frappe.whitelist(methods=["POST"])
-def select_fuel_stop(trip_name: str, cargo_kg: float, cargo_m3: float, departure_liters: float,
-		selected_reserve: str, via: str | None = None, axle_loads: str = ""):
+def save_fuel_plan(trip_name: str, cargo_kg: float, cargo_m3: float, departure_liters: float,
+		selected_reserves: str | list[str] | None = None, via: str | None = None, axle_loads: str = ""):
 	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
 	trip.check_permission("write")
 	if trip.docstatus == 2 or not frappe.conf.get("goods_transport_partner_fuel"):
-		frappe.throw("La sélection d’un arrêt carburant est indisponible.")
-	plan = preview(trip_name, cargo_kg, cargo_m3, via, axle_loads, departure_liters, selected_reserve)
+		frappe.throw("La sélection des arrêts carburant est indisponible.")
+	selected_reserves = parse_reserves(selected_reserves)
+	args = dict(cargo_kg=cargo_kg, cargo_m3=cargo_m3, departure_liters=departure_liters,
+		via=via, axle_loads=axle_loads)
+	plan = preview(trip_name, **args, selected_reserves=selected_reserves)
+	forecast = plan["fuel"]
+	if not forecast["feasible"]:
+		frappe.throw("Cette combinaison de réserves ne permet plus de terminer la mission.")
+	reserves = [stop["reserve"] for stop in forecast["stops"]]
+	prior = loads(trip.fuel_plan_inputs or "{}")
+	if prior.get("authorization_codes"):
+		from .fuel import AUTHORIZATION
+
+		if frappe.db.exists(AUTHORIZATION, {"name": ["in", prior["authorization_codes"]],
+				"status": ["in", ["Reserved", "Consumed"]]}):
+			frappe.throw("Ce plan a des retraits réservés ou consommés. Consultez ses autorisations.")
+	signature = plan_signature(trip, args, forecast)
 	frappe.db.set_value("Transport Trip", trip_name, {
-		"fuel_stop_reserve": selected_reserve,
-		"fuel_plan_inputs": dumps({
-			"cargo_kg": cargo_kg, "cargo_m3": cargo_m3, "departure_liters": departure_liters,
-			"via": via, "axle_loads": axle_loads,
-		}),
+		"fuel_stop_reserve": reserves[0] if reserves else None,
+		"fuel_plan_inputs": dumps({**args, "selected_reserves": reserves, "signature": signature}),
 	})
 	return plan
+
+
+@frappe.whitelist(methods=["POST"])
+def select_fuel_stop(trip_name: str, cargo_kg: float, cargo_m3: float, departure_liters: float,
+		selected_reserve: str, via: str | None = None, axle_loads: str = ""):
+	return save_fuel_plan(trip_name, cargo_kg, cargo_m3, departure_liters, [selected_reserve], via, axle_loads)
+
+
+@frappe.whitelist(methods=["POST"])
+def confirm_fuel_plan(trip_name: str, signature: str, valid_until: str, valid_from: str | None = None):
+	from .fuel import AUTHORIZATION, issue, locked_reserve
+
+	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
+	trip.check_permission("write")
+	stored = loads(trip.fuel_plan_inputs or "{}")
+	if trip.docstatus == 2 or not frappe.conf.get("goods_transport_partner_fuel") or not stored.get("signature"):
+		frappe.throw("Enregistrez un plan carburant valide avant de l’autoriser.")
+	if signature != stored["signature"]:
+		frappe.throw("Le plan a changé. Rechargez la mission.")
+	if stored.get("authorization_codes"):
+		return stored["authorization_codes"]
+	start = get_datetime(valid_from) if valid_from else now_datetime()
+	if not valid_until or not start.date() <= getdate(trip.trip_date) <= getdate(valid_until):
+		frappe.throw("La période de validité doit couvrir la date de la mission.")
+	reserves = stored.get("selected_reserves")
+	if not reserves:
+		frappe.throw("Le plan ne nécessite aucun ravitaillement.")
+	args = {key: stored[key] for key in ("cargo_kg", "cargo_m3", "departure_liters", "via", "axle_loads")}
+	plan = preview(trip_name, **args, selected_reserves=reserves)
+	forecast = plan["fuel"]
+	if not forecast["feasible"] or plan_signature(trip, args, forecast) != signature:
+		frappe.throw("La mission, l’itinéraire ou les réserves ont changé. Recalculez et enregistrez le plan.")
+	if frappe.db.get_value(AUTHORIZATION, {"trip": trip_name, "status": "Reserved"}, "name"):
+		frappe.throw("Cette mission a déjà des autorisations en cours. Consultez-les avant de confirmer le plan.")
+	locked = {name: locked_reserve(name) for name in sorted(reserves)}
+	codes = [issue(trip, locked[stop["reserve"]], str(stop["refill_liters"]), valid_until, valid_from)
+		for stop in forecast["stops"]]
+	stored["authorization_codes"] = codes
+	stored["confirmed_forecast"] = forecast
+	frappe.db.set_value("Transport Trip", trip_name, "fuel_plan_inputs", dumps(stored))
+	return codes

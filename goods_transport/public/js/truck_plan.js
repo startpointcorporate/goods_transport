@@ -22,10 +22,12 @@ goods_transport.truck_plan.open = function (frm) {
 		async primary_action(values) {
 			const args = { trip_name: frm.doc.name, ...values };
 			if (values.departure_liters == null || values.departure_liters === "") delete args.departure_liters;
-			if (frm.doc.fuel_stop_reserve && Object.entries(saved).every(([key, value]) =>
-				String(value ?? "") === String(values[key] ?? ""))) {
-				args.selected_reserve = frm.doc.fuel_stop_reserve;
+			const inputsMatch = ["cargo_kg", "cargo_m3", "departure_liters", "via", "axle_loads"].every(
+				(key) => String(saved[key] ?? "") === String(values[key] ?? ""));
+			if ("departure_liters" in args && inputsMatch && frm.doc.fuel_stop_reserve && !saved.authorization_codes) {
+				args.selected_reserves = saved.selected_reserves || [frm.doc.fuel_stop_reserve];
 			}
+			if (inputsMatch && saved.authorization_codes && "departure_liters" in args) args.confirmed = true;
 			const { message } = await frappe.call({
 				method: "goods_transport.goods_transport.services.truck_plan.preview",
 				args,
@@ -33,21 +35,13 @@ goods_transport.truck_plan.open = function (frm) {
 			});
 			await frappe.require(["leaflet.bundle.js", "leaflet.bundle.css"]);
 			dialog.hide();
-			goods_transport.truck_plan.show(message, async (reserve) => {
-				const response = await frappe.call({
-					method: "goods_transport.goods_transport.services.truck_plan.select_fuel_stop",
-					args: { ...args, selected_reserve: reserve },
-					freeze: true,
-				});
-				await frm.reload_doc();
-				return response.message;
-			});
+			goods_transport.truck_plan.show(message, frm, args);
 		},
 	});
 	dialog.show();
 };
 
-goods_transport.truck_plan.show = function (plan, selectStop) {
+goods_transport.truck_plan.show = function (plan, frm, args) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Plan de route poids lourd"),
 		size: "extra-large",
@@ -95,28 +89,71 @@ goods_transport.truck_plan.show = function (plan, selectStop) {
 			fuel.fuel_type, fuel.range_km.toFixed(1), fuel.required_liters.toFixed(1),
 			fuel.authorized_liters, fuel.delivered_liters,
 		])).appendTo(body);
-		if (!fuel.stops.length && fuel.required_liters > fuel.departure_liters) {
-			$("<p>").text(__("Aucun arrêt unique réalisable avec les réserves partenaires actuelles.")).appendTo(body);
+		if (!fuel.feasible) {
+			$("<p>").text(__("Aucune combinaison d’arrêts exploitable avec les réserves et le parcours évalués.")).appendTo(body);
+		} else if (!fuel.stops.length) {
+			$("<p>").text(__("Aucun ravitaillement nécessaire.")).appendTo(body);
+		} else {
+			$("<p>").text(__("Détour total {0} km · Dernier tronçon {1} km · Carburant à destination {2} L", [
+				fuel.detour_km.toFixed(1), fuel.last_leg_km.toFixed(1), fuel.destination_liters.toFixed(3),
+			])).appendTo(body);
+			$("<p>").text(fuel.cost == null ? __("Coût carburant incomplet. Certains prix sont indisponibles.")
+				: __("Coût estimé du carburant {0} {1}", [fuel.cost.toFixed(2), fuel.currency])).appendTo(body);
+			if (fuel.total_cost != null) $("<p>").text(__("Total carburant et péages {0} {1}", [
+				fuel.total_cost.toFixed(2), fuel.currency,
+			])).appendTo(body);
+			$("<p>").text(fuel.cost_ranked
+				? __("Classement par détour, puis coût lorsque les prix sont comparables.")
+				: __("Classement par détour, puis nombre d’arrêts.")).appendTo(body);
 		}
-		for (const stop of fuel.stops) {
-			const selected = fuel.selected?.reserve === stop.reserve;
-			const label = __("{0} · {1} L minimum · détour {2} km", [
-				stop.station, stop.refill_liters, stop.detour_km.toFixed(1),
+		const rows = $("<ol>").attr("data-fuel-stops", "").appendTo(body);
+		for (const [index, stop] of fuel.stops.entries()) {
+			const label = __("{0} · {1} km · arrivée {2} L · retrait {3} L · départ {4} L · autonomie {5} km", [
+				stop.station, stop.leg_km.toFixed(1), stop.arrival_liters.toFixed(3), stop.refill_liters.toFixed(3),
+				stop.departure_liters.toFixed(3), stop.range_km.toFixed(1),
 			]);
-			const row = $("<p>").addClass("d-flex align-items-center flex-wrap").appendTo(body);
-			$("<span>").addClass("mr-2").text(label).appendTo(row);
-			L.circleMarker([stop.latitude, stop.longitude], { radius: selected ? 10 : 6, color: "#157244" })
-				.addTo(map).bindTooltip($("<span>").text(label)[0]);
+			const row = $("<li>").addClass("mb-2").text(label + " ").appendTo(rows);
+			L.marker([stop.latitude, stop.longitude], {
+				icon: L.divIcon({ className: "badge badge-success", html: String(index + 1), iconSize: [22, 22] }),
+			}).addTo(map).bindTooltip($("<span>").text(label)[0]);
 			const gps = new URL("https://www.google.com/maps/dir/");
 			gps.search = new URLSearchParams({ api: "1", destination: `${stop.latitude},${stop.longitude}` });
-			$("<a>").attr({ href: gps.href, target: "_blank", rel: "noopener" }).text(__("Guidage GPS"))
-				.addClass("mr-2").appendTo(row);
-			if (selected) $("<strong>").text(__("Arrêt sélectionné")).appendTo(row);
-			else if (selectStop) $("<button>").attr("type", "button").addClass("btn btn-sm btn-default")
-				.text(__("Sélectionner")).appendTo(row).on("click", async () => {
-					const updated = await selectStop(stop.reserve);
+			$("<a>").attr({ href: gps.href, target: "_blank", rel: "noopener" }).text(__("Guidage GPS")).appendTo(row);
+		}
+		if (fuel.limited) $("<p>").text(__("Recherche limitée aux réserves les plus proches du trajet.")).appendTo(body);
+		if (!fuel.confirmed && (fuel.alternatives.length > 1 || (!fuel.feasible && args.selected_reserves))) {
+			const selector = $("<select>").attr("aria-label", __("Ajuster les arrêts"))
+				.addClass("form-control mb-2").appendTo(body);
+			$("<option>").val("").text(__("Choisir une autre combinaison")).appendTo(selector);
+			for (const option of fuel.alternatives) {
+				$("<option>").val(JSON.stringify(option.reserves)).text(
+					`${option.stations.join(" → ")} · ${option.detour_km.toFixed(1)} km`
+				).appendTo(selector);
+			}
+			selector.on("change", async () => {
+				if (!selector.val()) return;
+				const adjusted = { ...args, selected_reserves: JSON.parse(selector.val()) };
+				const { message } = await frappe.call({
+					method: "goods_transport.goods_transport.services.truck_plan.preview", args: adjusted, freeze: true,
+				});
+				dialog.hide();
+				goods_transport.truck_plan.show(message, frm, adjusted);
+			});
+		}
+		if (fuel.confirmed) {
+			$("<p>").text(__("Prévision du plan déjà autorisé.")).appendTo(body);
+		} else if (fuel.feasible && fuel.stops.length && frm.perm[0]?.write && frm.doc.docstatus !== 2) {
+			const { selected_reserve, confirmed, ...inputs } = args;
+			const reserves = fuel.stops.map((stop) => stop.reserve);
+			$("<button>").attr("type", "button").addClass("btn btn-default mr-2").text(__("Enregistrer le plan"))
+				.appendTo(body).on("click", async () => {
+					await frappe.call({
+						method: "goods_transport.goods_transport.services.truck_plan.save_fuel_plan",
+						args: { ...inputs, selected_reserves: reserves }, freeze: true,
+					});
+					await frm.reload_doc();
+					frappe.show_alert(__("Plan enregistré. Les réserves sont disponibles jusqu’à l’autorisation."));
 					dialog.hide();
-					goods_transport.truck_plan.show(updated, selectStop);
 				});
 		}
 	}

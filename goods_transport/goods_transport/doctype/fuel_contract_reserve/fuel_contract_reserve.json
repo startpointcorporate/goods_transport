@@ -34,7 +34,9 @@
   "remaining_liters",
   "reserved_liters",
   "available_liters",
-  "consumed_liters"
+  "consumed_liters",
+  "price_currency",
+  "price_per_liter"
  ],
  "fields": [
   {
@@ -111,6 +113,20 @@
    "precision": "3",
    "non_negative": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "price_currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "label": "Devise du prix"
+  },
+  {
+   "fieldname": "price_per_liter",
+   "fieldtype": "Currency",
+   "options": "price_currency",
+   "precision": "6",
+   "non_negative": 1,
+   "label": "Prix contractuel par litre"
   }
  ],
  "title_field": "contract_reference",
