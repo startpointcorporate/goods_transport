@@ -210,7 +210,7 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 
 	fuel = None
 	if departure_liters is not None and frappe.conf.get("goods_transport_partner_fuel"):
-		from .fuel_plan import estimate
+		from .fuel_plan import estimate, project_withdrawals
 
 		stored = loads(trip.fuel_plan_inputs or "{}") if confirmed else {}
 		args = dict(cargo_kg=cargo_kg, cargo_m3=cargo_m3, departure_liters=departure_liters,
@@ -225,7 +225,10 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 			fuel["confirmed"] = True
 			from .fuel import AUTHORIZATION
 			history = frappe.get_list(AUTHORIZATION, filters={"trip": trip.name}, fields=[
-				"status", "authorized_liters", "delivered_liters", "valid_until"], limit_page_length=0)
+				"name", "status", "authorized_liters", "delivered_liters", "valid_until"], limit_page_length=0)
+			by_code = {row.name: row for row in history}
+			fuel["actual_projection"] = project_withdrawals(fuel,
+				[by_code.get(code) for code in stored["authorization_codes"]], now_datetime())
 			fuel["authorized_liters"] = sum(row.authorized_liters for row in history
 				if row.status == "Reserved" and row.valid_until > now_datetime())
 			fuel["delivered_liters"] = sum(row.delivered_liters or 0 for row in history if row.status == "Consumed")

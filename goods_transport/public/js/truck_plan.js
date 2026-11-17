@@ -106,6 +106,14 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 				? __("Classement par détour, puis coût lorsque les prix sont comparables.")
 				: __("Classement par détour, puis nombre d’arrêts.")).appendTo(body);
 		}
+		const projection = fuel.actual_projection;
+		if (projection?.first_shortfall) {
+			const gap = projection.first_shortfall;
+			$("<p>").addClass("text-danger").text(gap.location
+				? __("Autonomie insuffisante avant {0} · manque {1} L", [gap.location, gap.liters.toFixed(3)])
+				: __("Autonomie insuffisante avant la destination · manque {0} L", [gap.liters.toFixed(3)]))
+				.appendTo(body);
+		}
 		const rows = $("<ol>").attr("data-fuel-stops", "").appendTo(body);
 		for (const [index, stop] of fuel.stops.entries()) {
 			const label = __("{0} · {1} km · arrivée {2} L · retrait {3} L · départ {4} L · autonomie {5} km", [
@@ -113,6 +121,13 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 				stop.departure_liters.toFixed(3), stop.range_km.toFixed(1),
 			]);
 			const row = $("<li>").addClass("mb-2").text(label + " ").appendTo(rows);
+			const actual = projection?.stops[index];
+			if (actual) $("<div>").addClass("small text-muted").text(
+				__("Projection actualisée · arrivée {0} L · retrait {1} L · départ {2} L · autonomie {3} km", [
+					actual.arrival_liters.toFixed(3), actual.withdrawal_liters.toFixed(3),
+					actual.departure_liters.toFixed(3), actual.range_km.toFixed(1),
+				])
+			).appendTo(row);
 			L.marker([stop.latitude, stop.longitude], {
 				icon: L.divIcon({ className: "badge badge-success", html: String(index + 1), iconSize: [22, 22] }),
 			}).addTo(map).bindTooltip($("<span>").text(label)[0]);

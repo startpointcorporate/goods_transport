@@ -185,3 +185,30 @@ def estimate(trip, vehicle, points, baseline, departure_liters, route, table, se
 			result.update(forecast, feasible=True)
 			return result, calculated, waypoints
 	return result, baseline, points
+
+
+def project_withdrawals(forecast, authorizations, now):
+	"""Apply evidenced deliveries and outstanding authorizations to the confirmed forecast."""
+	variance = Decimal(0)
+	first_shortfall = None
+	update = []
+	for stop, auth in zip(forecast["stops"], authorizations, strict=True):
+		projected_arrival = Decimal(str(stop["arrival_liters"])) + variance
+		if projected_arrival < 0 and first_shortfall is None:
+			first_shortfall = {"location": stop["station"], "liters": float(-projected_arrival)}
+		if auth and auth.status == "Consumed":
+			quantity = auth.delivered_liters or 0
+		elif auth and auth.status == "Reserved" and auth.valid_until > now:
+			quantity = auth.authorized_liters
+		else:
+			quantity = 0
+		variance += Decimal(str(quantity)) - Decimal(str(stop["refill_liters"]))
+		projected_departure = Decimal(str(stop["departure_liters"])) + variance
+		update.append({"arrival_liters": float(projected_arrival), "withdrawal_liters": quantity,
+			"departure_liters": float(projected_departure), "status": auth.status if auth else None,
+			"range_km": float(max(Decimal(0), projected_departure) * 100
+				/ Decimal(str(forecast["liters_100km"])))})
+	destination = Decimal(str(forecast["destination_liters"])) + variance
+	if first_shortfall is None and destination < 0:
+		first_shortfall = {"liters": float(-destination)}
+	return {"stops": update, "destination_liters": float(destination), "first_shortfall": first_shortfall}
