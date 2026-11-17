@@ -68,16 +68,14 @@ fixtures = [
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "goods_transport",
-# 		"logo": "/assets/goods_transport/logo.png",
-# 		"title": "Goods Transport",
-# 		"route": "/goods_transport",
-# 		"has_permission": "goods_transport.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": app_name,
+		"logo": "/assets/goods_transport/images/goods-transport-logo.svg",
+		"title": app_title,
+		"route": "/desk/goods-transport",
+	}
+]
 
 # Includes in <head>
 # ------------------
