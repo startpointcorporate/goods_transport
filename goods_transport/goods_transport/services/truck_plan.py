@@ -21,6 +21,7 @@ CEMAC = {
 
 
 def boot_session(bootinfo):
+	bootinfo.goods_transport_trip_finance = bool(frappe.conf.get("goods_transport_trip_finance"))
 	bootinfo.goods_transport_truck_plan = bool(frappe.conf.get("goods_transport_truck_osrm_url"))
 	bootinfo.goods_transport_partner_fuel = bool(frappe.conf.get("goods_transport_partner_fuel"))
 

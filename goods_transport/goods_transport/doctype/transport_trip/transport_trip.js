@@ -21,6 +21,12 @@ frappe.ui.form.on("Transport Trip", {
 		}));
 	},
 	refresh(frm) {
+		if (frappe.boot.goods_transport_trip_finance && !frm.is_new()) {
+			frm.add_custom_button(__("Contrôle financier"), async () => {
+				await frappe.require("/assets/goods_transport/js/trip_finance.js");
+				goods_transport.trip_finance.open(frm);
+			});
+		}
 		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled" && frm.doc.status !== "Closed") {
 			frm.add_custom_button(
 				__("Bilty"),

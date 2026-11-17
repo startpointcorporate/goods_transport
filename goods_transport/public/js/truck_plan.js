@@ -173,6 +173,27 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 				});
 		}
 	}
+	if (frappe.boot.goods_transport_trip_finance && frm.perm[0]?.write &&
+		!["Settled", "Closed", "Cancelled"].includes(frm.doc.status)) {
+		$("<button>").attr("type", "button").addClass("btn btn-default mr-2")
+			.text(__("Enregistrer le budget de référence")).appendTo(body).on("click", async () => {
+				if (frm.is_dirty()) {
+					frappe.msgprint(__("Enregistrez la mission avant son budget."));
+					return;
+				}
+				const inputs = { ...args };
+				if (plan.fuel?.feasible && !plan.fuel.confirmed) {
+					inputs.selected_reserves = plan.fuel.stops.map((stop) => stop.reserve);
+				}
+				await frappe.call({
+					method: "goods_transport.goods_transport.services.trip_finance.save_budget",
+					args: { trip_name: frm.doc.name, route_inputs: JSON.stringify(inputs) }, freeze: true,
+				});
+				dialog.hide();
+				await frm.reload_doc();
+				frappe.show_alert(__("Budget de référence enregistré."));
+			});
+	}
 	const print = $("<button>").attr("type", "button").addClass("btn btn-default")
 		.text(__("Feuille de route PDF")).appendTo(body);
 	print.on("click", () => {

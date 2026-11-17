@@ -8,6 +8,8 @@ class TripExpense(Document):
 	def validate(self):
 		self._validate_trip_open()
 		self._validate_recoverable()
+		if self.get("toll_location") and frappe.db.get_value("Transport Location", self.toll_location, "location_type") != "Péage":
+			frappe.throw(_("Select a toll station."))
 
 	def before_submit(self):
 		# Draft can be saved without a receipt; the requirement only bites at
