@@ -62,6 +62,7 @@ def install_payroll_workspace():
 		ws = frappe.new_doc("Workspace")
 		ws.name = WORKSPACE_NAME
 
+	ws.type = "Workspace"
 	ws.title = WORKSPACE_NAME
 	ws.label = WORKSPACE_NAME
 	ws.module = "Goods Transport"

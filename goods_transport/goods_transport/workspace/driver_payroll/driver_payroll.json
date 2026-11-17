@@ -260,5 +260,6 @@
    "type": "Report"
   }
  ],
- "title": "Driver Payroll"
+ "title": "Driver Payroll",
+ "type": "Workspace"
 }
