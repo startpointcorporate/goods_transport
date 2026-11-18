@@ -16,6 +16,8 @@ class TestFleetTyres(TestCase):
 		TestTransportRecette.setUpClass()
 		cls.addClassCleanup(TestTransportRecette.doClassCleanups)
 		company = cls.fixtures.company.name
+		if not frappe.db.exists("Party Type", "Supplier"):
+			make("Party Type", party_type="Supplier", account_type="Payable")
 		frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
 		for purpose in ("Material Receipt", "Material Transfer", "Material Issue"):
 			if not frappe.db.exists("Stock Entry Type", purpose):
