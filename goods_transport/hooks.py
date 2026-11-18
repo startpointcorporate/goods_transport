@@ -25,6 +25,17 @@ doctype_js = {
 
 # Trip lifecycle -> driver earnings + Transport-User sidebar cleanup
 doc_events = {
+	"Vehicle": {
+		"validate": "goods_transport.goods_transport.services.fleet_odometer.validate_vehicle",
+	},
+	"Asset Maintenance Log": {
+		"on_submit": "goods_transport.goods_transport.doctype.vehicle_maintenance_schedule.vehicle_maintenance_schedule.complete_asset_task",
+		"before_cancel": "goods_transport.goods_transport.doctype.vehicle_maintenance_schedule.vehicle_maintenance_schedule.prevent_asset_completion_cancel",
+	},
+	"Vehicle Log": {
+		"before_submit": "goods_transport.goods_transport.services.fleet_odometer.validate_vehicle_log_on_submit",
+		"before_cancel": "goods_transport.goods_transport.services.fleet_odometer.validate_vehicle_log_on_cancel",
+	},
 	"Sales Invoice": {
 		"before_submit": "goods_transport.goods_transport.services.billing.validate_invoice_bilty_delivery",
 	},
@@ -84,6 +95,12 @@ add_to_apps_screen = [
 		"route": "/desk/goods-transport",
 	}
 ]
+
+# Reuse submitted ERPNext vouchers as maintenance cost sources.
+for voucher_type in ("Asset Repair", "Purchase Invoice", "Stock Entry", "Payment Entry", "Journal Entry"):
+	doc_events.setdefault(voucher_type, {}).update({
+		"validate": "goods_transport.goods_transport.services.fleet_costs.validate_repair_voucher",
+	})
 
 # Includes in <head>
 # ------------------
@@ -313,6 +330,9 @@ add_to_apps_screen = [
 
 
 scheduler_events = {
+	"daily": [
+		"goods_transport.goods_transport.doctype.vehicle_maintenance_schedule.vehicle_maintenance_schedule.refresh_daily_alerts",
+	],
 	"cron": {
 		"*/5 * * * *": ["goods_transport.goods_transport.services.fuel.expire"],
 	},

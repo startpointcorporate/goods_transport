@@ -3,6 +3,12 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from goods_transport.goods_transport.services.fleet_availability import reservation_window, validate_assignment
+from goods_transport.goods_transport.services.fleet_odometer import (
+	record_trip_readings,
+	validate_trip_readings,
+)
+
 
 TRIP_STATUS_ORDER = [
 	"Planned",
@@ -20,6 +26,8 @@ TRIP_STATUS_ORDER = [
 
 class TransportTrip(Document):
 	def validate(self):
+		validate_trip_readings(self)
+		reservation_window(self)
 		self._default_currency()
 		self._compute_estimated_cost()
 		self._compute_load_from_bilties()
@@ -27,6 +35,7 @@ class TransportTrip(Document):
 		self._set_status_draft_time()
 
 	def before_submit(self):
+		validate_assignment(self)
 		if not self.vehicle_license_plate and self.vehicle:
 			plate = frappe.db.get_value("Vehicle", self.vehicle, "license_plate")
 			if plate:
@@ -35,7 +44,18 @@ class TransportTrip(Document):
 	def on_submit(self):
 		self.db_set("status", "Vehicle Assigned")
 
+	def before_update_after_submit(self):
+		validate_trip_readings(self)
+		before = self.get_doc_before_save()
+		if before and (before.vehicle != self.vehicle or before.status != self.status):
+			frappe.throw(_("Use the trip lifecycle to change a submitted assignment."))
+
+	def on_update_after_submit(self):
+		record_trip_readings(self)
+
 	def on_cancel(self):
+		if self.odometer_recorded_at:
+			frappe.throw(_("Correct the verified odometer entry before cancelling this Trip."))
 		bilty_count = frappe.db.count("Bilty", {"transport_trip": self.name, "docstatus": ["!=", 2]})
 		if bilty_count:
 			frappe.throw(
@@ -148,6 +168,8 @@ def advance_status(trip: str, to_status: str) -> str:
 	target_idx = TRIP_STATUS_ORDER.index(to_status)
 	if target_idx <= current_idx:
 		frappe.throw(_("Cannot move Trip status from {0} back to {1}.").format(doc.status, to_status))
+	if current_idx < TRIP_STATUS_ORDER.index("In Transit") <= target_idx:
+		validate_assignment(doc, departing=True)
 	if to_status == "Settled":
 		frappe.throw(_("Submit a Trip Settlement to settle the Trip."))
 	if to_status == "Closed":
@@ -155,6 +177,7 @@ def advance_status(trip: str, to_status: str) -> str:
 	if to_status == "Delivered":
 		doc.validate_delivery()
 	doc.db_set("status", to_status)
+	record_trip_readings(doc)
 	if to_status == "Delivered":
 		doc.refresh_orders()
 	return to_status

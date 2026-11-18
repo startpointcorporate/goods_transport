@@ -1,0 +1,160 @@
+{
+ "doctype": "DocType",
+ "name": "Vehicle Maintenance Schedule",
+ "module": "Goods Transport",
+ "autoname": "format:VMS-{#####}",
+ "engine": "InnoDB",
+ "track_changes": 1,
+ "field_order": [
+  "vehicle",
+  "company",
+  "operation",
+  "enabled",
+  "responsible",
+  "asset_maintenance",
+  "asset_task",
+  "initial_date",
+  "initial_odometer",
+  "interval_days",
+  "interval_km",
+  "advance_days",
+  "advance_km",
+  "blocking",
+  "due_date",
+  "due_odometer",
+  "completions"
+ ],
+ "fields": [
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Data",
+   "label": "Operation",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1"
+  },
+  {
+   "fieldname": "responsible",
+   "fieldtype": "Link",
+   "label": "Responsible",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "asset_maintenance",
+   "fieldtype": "Link",
+   "label": "Asset Maintenance",
+   "options": "Asset Maintenance"
+  },
+  {
+   "fieldname": "asset_task",
+   "fieldtype": "Data",
+   "label": "Asset Maintenance Task Row"
+  },
+  {
+   "fieldname": "initial_date",
+   "fieldtype": "Date",
+   "label": "Initial Date"
+  },
+  {
+   "fieldname": "initial_odometer",
+   "fieldtype": "Data",
+   "label": "Initial Odometer (km)"
+  },
+  {
+   "fieldname": "interval_days",
+   "fieldtype": "Int",
+   "label": "Interval (days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "interval_km",
+   "fieldtype": "Int",
+   "label": "Interval (km)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "advance_days",
+   "fieldtype": "Int",
+   "label": "Alert Advance (days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "advance_km",
+   "fieldtype": "Int",
+   "label": "Alert Advance (km)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "blocking",
+   "fieldtype": "Check",
+   "label": "Block Assignment When Due"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "due_odometer",
+   "fieldtype": "Data",
+   "label": "Due Odometer (km)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "completions",
+   "fieldtype": "Table",
+   "label": "Completed Work",
+   "options": "Vehicle Maintenance Completion",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

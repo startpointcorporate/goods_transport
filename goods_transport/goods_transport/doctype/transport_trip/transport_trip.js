@@ -27,6 +27,13 @@ frappe.ui.form.on("Transport Trip", {
 				goods_transport.trip_finance.open(frm);
 			});
 		}
+		if (frm.doc.docstatus === 1 && TRIP_STATUSES.indexOf(frm.doc.status) < TRIP_STATUSES.indexOf("Delivered")
+			&& frappe.model.can_create("Vehicle Immobilisation")) {
+			frm.add_custom_button(__("Report Breakdown"), () => frappe.new_doc("Vehicle Immobilisation", {
+				vehicle: frm.doc.vehicle, company: frm.doc.company, transport_trip: frm.doc.name, reason: "Breakdown",
+			}), __("Actions"));
+		}
+
 		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled" && frm.doc.status !== "Closed") {
 			frm.add_custom_button(
 				__("Bilty"),

@@ -3,13 +3,21 @@
 from unittest import TestCase
 
 import frappe
-from frappe.utils import getdate, today
+from frappe.utils import getdate, now_datetime, today
 
 from goods_transport.goods_transport.doctype.bilty.bilty import get_unbilled_bilties
 from goods_transport.goods_transport.doctype.transport_trip.transport_trip import advance_status
+from goods_transport.goods_transport.doctype.vehicle_immobilisation.vehicle_immobilisation import release_vehicle
+from goods_transport.goods_transport.doctype.vehicle_maintenance_schedule.vehicle_maintenance_schedule import (
+	complete_schedule,
+	due_state,
+	refresh_vehicle_alerts,
+)
 from goods_transport.goods_transport.doctype.trip_settlement.trip_settlement import create_settlement_for_trip
+from goods_transport.goods_transport.report.fleet_maintenance.fleet_maintenance import execute as fleet_report
 from goods_transport.goods_transport.report.trip_profitability.trip_profitability import execute
 from goods_transport.goods_transport.services.billing import create_sales_invoice_from_bilties
+from goods_transport.goods_transport.services.fleet_costs import vehicle_costs
 
 
 def make(doctype, submit=False, **fields):
@@ -78,13 +86,17 @@ class TestTransportRecette(TestCase):
 		cls.freight = make("Item", item_code=cls.label, item_group=item_group.name, stock_uom="Kg",
 			is_stock_item=0, is_sales_item=1)
 
-	def route(self, quantity=1000, order=None, order_quantity=1000):
+	def setUp(self):
+		frappe.db.savepoint("transport_acceptance_case")
+		self.addCleanup(frappe.db.rollback, save_point="transport_acceptance_case")
+
+	def route(self, quantity=1000, order=None, order_quantity=1000, vehicle=None):
 		common = dict(company=self.company.name, origin=self.origin, destination=self.destination, currency="EUR")
 		order = order or make(
 			"Transport Order", True, **common, customer=self.customer.name,
 			quantity=order_quantity, uom="Kg", rate_basis="Per Kg", rate=1, pod_required=1,
 		)
-		trip = make("Transport Trip", True, **common, vehicle=self.vehicle.name,
+		trip = make("Transport Trip", True, **common, vehicle=vehicle or self.vehicle.name,
 			driver=self.driver.name, freight_item=self.freight.name)
 		bilty = make(
 			"Bilty", True, **common, customer=self.customer.name, transport_order=order.name,
@@ -94,6 +106,184 @@ class TestTransportRecette(TestCase):
 			],
 		)
 		return order, trip, bilty
+
+	def second_vehicle(self):
+		vehicle = frappe.copy_doc(self.vehicle)
+		vehicle.license_plate = f"{self.label} B"
+		return vehicle.insert().name
+
+	def test_fleet_a_preventive_maintenance_without_asset(self):
+		frappe.db.set_value("Vehicle", self.vehicle.name, "last_odometer", 85000)
+		schedule = make("Vehicle Maintenance Schedule", company=self.company.name,
+			vehicle=self.vehicle.name, operation="Oil change", responsible="Administrator",
+			initial_odometer="80000", interval_km=10000, advance_km=5000, blocking=1)
+		self.assertEqual(schedule.due_odometer, "90000")
+		self.assertEqual(due_state(schedule, 85000), "Upcoming")
+		self.assertEqual(due_state(schedule, 90000), "Due")
+		self.assertEqual(due_state(schedule, 90001), "Overdue")
+		refresh_vehicle_alerts(self.vehicle.name, 85000)
+		self.assertEqual(frappe.db.count("ToDo", {"reference_type": schedule.doctype,
+			"reference_name": schedule.name, "status": "Open"}), 1)
+		frappe.db.set_value("Vehicle", self.vehicle.name, "last_odometer", 90000)
+		with self.assertRaises(frappe.ValidationError):
+			complete_schedule(schedule.name, today(), "Oil and filter replaced", "90001")
+		complete_schedule(schedule.name, today(), "Oil and filter replaced", "90000")
+		schedule.reload()
+		self.assertEqual(schedule.due_odometer, "100000")
+		self.assertEqual(len(schedule.completions), 1)
+
+	def test_fleet_native_asset_lifecycle(self):
+		company = self.company.name
+		category = make("Asset Category", asset_category_name=f"{self.label} Trucks", accounts=[{
+			"company_name": company,
+			"fixed_asset_account": frappe.db.get_value("Account", {
+				"company": company, "account_type": "Fixed Asset", "is_group": 0,
+			}, "name"),
+		}])
+		item = make("Item", item_code=f"{self.label} Truck Asset", item_group=self.freight.item_group,
+			stock_uom="Kg", is_stock_item=0, is_fixed_asset=1, asset_category=category.name)
+		location = make("Location", location_name=f"{self.label} Garage")
+		asset = make("Asset", True, item_code=item.name, asset_name=self.label, location=location.name,
+			company=company, purchase_date=today(), available_for_use_date=today(),
+			asset_type="Existing Asset", net_purchase_amount=200000, maintenance_required=1)
+		vehicle = frappe.get_doc("Vehicle", self.vehicle.name)
+		vehicle.custom_maintenance_asset = asset.name
+		vehicle.save()
+		frappe.db.set_value("Vehicle", vehicle.name, "last_odometer", 90000)
+		team = make("Asset Maintenance Team", maintenance_team_name=f"{self.label} Mechanics", company=company,
+			maintenance_team_members=[{"team_member": "Administrator", "maintenance_role": "System Manager"}])
+		native = make("Asset Maintenance", asset_name=asset.name, company=company, maintenance_team=team.name,
+			asset_maintenance_tasks=[{"maintenance_task": "Oil change", "assign_to": "Administrator",
+				"maintenance_type": "Preventive Maintenance", "maintenance_status": "Planned",
+				"start_date": today(), "periodicity": "Monthly"}])
+		task = native.asset_maintenance_tasks[0].name
+		schedule = make("Vehicle Maintenance Schedule", company=company, vehicle=vehicle.name,
+			operation="Oil change", responsible="Administrator", asset_maintenance=native.name, asset_task=task,
+			initial_odometer="80000", interval_km=10000)
+		log = frappe.get_doc("Asset Maintenance Log", {"asset_maintenance": native.name, "task": task})
+		log.maintenance_status, log.completion_date = "Completed", today()
+		log.submit()
+		self.assertEqual(schedule.reload().due_odometer, "100000")
+		self.assertEqual(schedule.completions[0].asset_log, log.name)
+
+		incident = make("Vehicle Immobilisation", company=company, vehicle=vehicle.name,
+			reason="Breakdown", description="Fictitious fault")
+		repair = make("Asset Repair", company=company, asset=asset.name, failure_date=now_datetime(),
+			custom_vehicle_immobilisation=incident.name, repair_status="Pending")
+		incident.asset_repair, incident.resolution = repair.name, "Fictitious repair completed"
+		incident.save()
+		with self.assertRaises(frappe.ValidationError):
+			release_vehicle(incident.name)
+		repair.completion_date, repair.repair_status = now_datetime(), "Completed"
+		repair.submit()
+		self.assertTrue(release_vehicle(incident.name))
+
+	def test_fleet_b_actual_odometer_without_asset(self):
+		frappe.db.set_value("Vehicle", self.vehicle.name, "last_odometer", 85000)
+		_, trip, _ = self.route()
+		trip.departure_odometer = "85000"
+		trip.arrival_odometer = "84999"
+		with self.assertRaises(frappe.ValidationError):
+			trip.save()
+		trip.reload()
+		trip.departure_odometer = "85000"
+		trip.arrival_odometer = "85600"
+		trip.save()
+		advance_status(trip.name, "Arrived")
+		trip.reload()
+		self.assertEqual(trip.actual_distance, 600)
+		self.assertEqual(trip.odometer_recorded_by, "Administrator")
+		self.assertEqual(frappe.db.get_value("Vehicle Log", trip.odometer_vehicle_log, "odometer"), 85600)
+		self.assertEqual(frappe.db.get_value("Vehicle", trip.vehicle, "last_odometer"), 85600)
+		trip.arrival_odometer = "86000"
+		with self.assertRaises(frappe.ValidationError):
+			trip.save()
+
+	def test_fleet_c_server_rejects_immobilised_vehicle_until_release(self):
+		incident = make("Vehicle Immobilisation", company=self.company.name, vehicle=self.vehicle.name,
+			reason="Breakdown", description="Fictitious brake fault")
+		trip = make("Transport Trip", company=self.company.name, origin=self.origin,
+			destination=self.destination, vehicle=self.vehicle.name, freight_item=self.freight.name,
+			driver=self.driver.name)
+		with self.assertRaises(frappe.ValidationError):
+			trip.submit()
+		with self.assertRaises(frappe.ValidationError):
+			release_vehicle(incident.name)
+		incident.resolution = "Fictitious brake inspection completed"
+		incident.save()
+		release_vehicle(incident.name)
+		trip.reload().submit()
+		self.assertEqual(trip.status, "Vehicle Assigned")
+
+	def test_fleet_c_reservations_reject_overlap(self):
+		common = dict(company=self.company.name, vehicle=self.vehicle.name,
+			origin=self.origin, destination=self.destination, freight_item=self.freight.name,
+			driver=self.driver.name, planned_departure_at=f"{today()} 08:00:00",
+			planned_return_at=f"{today()} 10:00:00")
+		first = make("Transport Trip", True, **common)
+		overlap = make("Transport Trip", **dict(common, planned_departure_at=f"{today()} 09:00:00"))
+		with self.assertRaises(frappe.ValidationError):
+			overlap.submit()
+		next_trip = make("Transport Trip", True, **dict(common,
+			planned_departure_at=f"{today()} 10:00:00", planned_return_at=f"{today()} 12:00:00"))
+		advance_status(first.name, "In Transit")
+		with self.assertRaises(frappe.ValidationError):
+			advance_status(next_trip.name, "In Transit")
+
+	def repair_vouchers(self, submit=False):
+		company = self.company.name
+		vehicle = self.vehicle.name
+		incident = make("Vehicle Immobilisation", company=company, vehicle=vehicle,
+			reason="Breakdown", description="Fictitious repair requiring parts")
+		item = make("Item", item_code=f"{self.label} Brake Parts", item_group=self.freight.item_group,
+			stock_uom="Kg", is_stock_item=1)
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0}, "name")
+		center = frappe.db.get_value("Company", company, "cost_center")
+		expense = frappe.db.get_value("Company", company, "stock_adjustment_account")
+		line = dict(item_code=item.name, qty=2, basic_rate=30000, cost_center=center, expense_account=expense)
+		make("Stock Entry", True, company=company, stock_entry_type="Material Receipt",
+			items=[dict(line, t_warehouse=warehouse)])
+		issue = make("Stock Entry", submit, company=company, stock_entry_type="Material Issue",
+			custom_vehicle_immobilisation=incident.name, items=[dict(line, s_warehouse=warehouse)])
+
+		group = frappe.db.get_value("Supplier Group", {"is_group": 0}, "name")
+		supplier = make("Supplier", supplier_name=f"{self.label} Garage", supplier_group=group)
+		service = make("Item", item_code=f"{self.label} Repair Service", item_group=self.freight.item_group,
+			stock_uom="Kg", is_stock_item=0, is_purchase_item=1)
+		invoice = make("Purchase Invoice", submit, company=company, supplier=supplier.name, currency="EUR",
+			posting_date=today(), set_posting_time=1, custom_vehicle_immobilisation=incident.name, custom_fleet_cost_category="External Service",
+			items=[dict(item_code=service.name, qty=1, rate=120000, expense_account=expense, cost_center=center)])
+		return issue, invoice
+
+	def test_fleet_d_e_submitted_stock_and_purchase_vouchers(self):
+		frappe.db.set_value("Vehicle", self.vehicle.name, "last_odometer", 85000)
+		_, trip, _ = self.route()
+		trip.reload()
+		trip.departure_odometer, trip.arrival_odometer = "85000", "85600"
+		trip.save()
+		advance_status(trip.name, "Arrived")
+
+		issue, invoice = self.repair_vouchers(submit=True)
+		self.assertEqual(issue.total_outgoing_value, 60000)
+		self.assertTrue(frappe.db.exists("GL Entry", {"voucher_type": "Stock Entry", "voucher_no": issue.name}))
+		costs = vehicle_costs(self.company.name, [self.vehicle.name], today(), today())[self.vehicle.name]
+		self.assertEqual(costs["Parts"], 60000)
+		self.assertEqual(costs["External Service"], 120000)
+		self.assertEqual(costs["charges"], 180000)
+		self.assertEqual(costs["investment"], 0)
+		self.assertEqual(costs["cash_out"], 0)
+		_, rows, *_ = fleet_report({"company": self.company.name, "vehicle": self.vehicle.name})
+		self.assertEqual(rows[0]["cost_per_km"], 300)
+
+		from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+		payment = get_payment_entry("Purchase Invoice", invoice.name, bank_account=self.company.default_cash_account)
+		payment.custom_vehicle_immobilisation = invoice.custom_vehicle_immobilisation
+		payment.reference_no, payment.reference_date = "FICTITIOUS-FLEET-REPAIR", today()
+		payment.insert().submit()
+		paid_costs = vehicle_costs(self.company.name, [self.vehicle.name], today(), today())[self.vehicle.name]
+		self.assertEqual(paid_costs["cash_out"], 120000)
+		self.assertEqual(paid_costs["charges"], 180000)
 
 	def pod(self, bilty, quantity):
 		return make("Proof of Delivery", True, bilty=bilty.name, delivered_quantity=quantity,
@@ -125,7 +315,7 @@ class TestTransportRecette(TestCase):
 
 	def check_consolidated_invoice(self, shared_order):
 		order, first_trip, first_bilty = self.route(order_quantity=2000 if shared_order else 1000)
-		_, second_trip, second_bilty = self.route(order=order if shared_order else None)
+		_, second_trip, second_bilty = self.route(order=order if shared_order else None, vehicle=self.second_vehicle())
 		self.deliver(first_trip, first_bilty)
 		self.deliver(second_trip, second_bilty)
 		invoice = self.invoice(first_bilty, second_bilty)
@@ -154,7 +344,7 @@ class TestTransportRecette(TestCase):
 			create_sales_invoice_from_bilties([bilty.name])
 		with self.assertRaises(frappe.ValidationError):
 			advance_status(trip.name, "Delivered")
-		_, retry_trip, retry_bilty = self.route(quantity=100, order=order)
+		_, retry_trip, retry_bilty = self.route(quantity=100, order=order, vehicle=self.second_vehicle())
 		self.deliver(retry_trip, retry_bilty, 100)
 		order.reload()
 		self.assertEqual((order.delivered_quantity, order.remaining_quantity, order.status),
