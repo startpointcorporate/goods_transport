@@ -1,0 +1,1862 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Goods Transport\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. DocType: Driver Pay Rule
+msgid "0 = recover the full outstanding balance in one month."
+msgstr "0 = récupérer la totalité du solde en un mois."
+
+#. DocType: Driver Payroll Run
+msgid "<p class='text-muted small'>Use <b>Fetch Trip Earnings</b> to pull every completed Trip in the period that has not yet been paid.</p>"
+msgstr "<p class='text-muted small'>Utilisez <b>Charger les gains par mission</b> pour récupérer les missions terminées de la période dont les gains n’ont pas encore été payés.</p>"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "A Proof of Delivery already exists for Bilty {0}."
+msgstr "Une preuve de livraison existe déjà pour la lettre de voiture {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "A receipt is required before submitting a Trip Expense of type {0}."
+msgstr "Un justificatif est requis avant de valider une dépense de type {0}."
+
+#. DocType: Trip Expense Type
+msgid "Accounting Defaults"
+msgstr "Paramètres comptables par défaut"
+
+#. DocType: Trip Advance
+msgid "Accounting Links"
+msgstr "Liens comptables"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "Active Driver Pay Rule {0} already covers the same scope. The most recently modified rule will win."
+msgstr "La règle de rémunération {0} couvre déjà ce périmètre. La règle modifiée le plus récemment sera appliquée."
+
+msgid "Active Trips"
+msgstr "Missions actives"
+
+#. DocType: Transport Trip
+msgid "Actual Distance (km)"
+msgstr "Distance réelle (km)"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/vehicle_trip_history/vehicle_trip_history.py
+msgid "Actual km"
+msgstr "Kilométrage réel"
+
+#. DocType: Bilty
+msgid "Additional Charges"
+msgstr "Frais complémentaires"
+
+#. DocType: Bilty
+msgid "Additional Charges Total"
+msgstr "Total des frais complémentaires"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "Additional Salaries"
+msgstr "Compléments de salaire"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Additional Salary {0} is already paid through Salary Slip {1}. Cancel the Salary Slip before cancelling this run."
+msgstr "Le complément de salaire {0} a déjà été payé via le bulletin {1}. Annulez ce bulletin avant d’annuler ce traitement."
+
+#. DocType: Trip Settlement
+msgid "Advance Balance"
+msgstr "Solde de l’avance"
+
+#. DocType: Trip Advance
+msgid "Advance Date"
+msgstr "Date de l’avance"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_cost_per_trip/driver_cost_per_trip.py
+msgid "Advance Issued"
+msgstr "Avance versée"
+
+#. DocType: Trip Advance
+msgid "Advance liability / receivable account this advance sits in until consumed."
+msgstr "Compte où l’avance reste inscrite jusqu’à son utilisation."
+
+#. DocType: Driver Pay Rule
+msgid "Advance Recovery"
+msgstr "Récupération de l’avance"
+
+#. DocType: Driver Payroll Run
+msgid "Advance Recovery Allocation"
+msgstr "Affectation de la récupération d’avance"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Advance recovery cannot be negative for {0}."
+msgstr "La récupération d’avance ne peut pas être négative pour {0}."
+
+#. apps/goods_transport/goods_transport/public/js/driver.js
+msgid "Advance Recovery Status"
+msgstr "État de récupération de l’avance"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Advance Status"
+msgstr "État de l’avance"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Advance Trip Status"
+msgstr "État de la mission liée à l’avance"
+
+#. DocType: Transport Trip
+msgid "Agreed Vehicle Hire"
+msgstr "Coût de location convenu"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Already at final status."
+msgstr "Le statut final est déjà atteint."
+
+#. DocType: Driver Advance Recovery
+msgid "Already Settled"
+msgstr "Déjà réglé"
+
+#. DocType: Trip Advance
+msgid "Amount & Accounts"
+msgstr "Montant et comptes"
+
+#. DocType: Transport Trip
+msgid "Amount agreed with the transporter / vehicle owner for this trip."
+msgstr "Montant convenu avec le transporteur ou le propriétaire du véhicule pour cette mission."
+
+#. DocType: Driver Pay Rule
+msgid "Amount Per Trip"
+msgstr "Montant par mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_settlement/trip_settlement.py
+msgid "An exchange rate is required to calculate Trip Settlement revenue."
+msgstr "Un taux de change est requis pour calculer les recettes de la mission."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_settlement/trip_settlement.py
+msgid "An open Trip Settlement already exists for Trip {0}."
+msgstr "Un règlement est déjà ouvert pour la mission {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Arrival"
+msgstr "Arrivée"
+
+#. DocType: Transport Trip
+msgid "Arrival Time"
+msgstr "Heure d’arrivée"
+
+#. DocType: Transport Trip
+msgid "Arrived"
+msgstr "Arrivé"
+
+#. DocType: Transport Trip
+msgid "At Loading Point"
+msgstr "Au point de chargement"
+
+#. DocType: Fuel Authorization
+msgid "Authorized Liters"
+msgstr "Litres autorisés"
+
+#. DocType: Fuel Contract Reserve
+msgid "Available Liters"
+msgstr "Litres disponibles"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/trip_expense_analysis/trip_expense_analysis.py
+msgid "Avg"
+msgstr "Moy."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/route_profitability/route_profitability.py
+msgid "Avg Cost"
+msgstr "Coût moyen"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/route_profitability/route_profitability.py
+msgid "Avg Distance"
+msgstr "Distance moyenne"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transporter_performance/transporter_performance.py
+msgid "Avg Hire"
+msgstr "Coût moyen de location"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/route_profitability/route_profitability.py
+msgid "Avg Revenue"
+msgstr "Recettes moyennes"
+
+#. DocType: Driver Trip Earning
+msgid "Basis"
+msgstr "Base de calcul"
+
+#. DocType: Trip Expense
+msgid "Beneficiary (Optional)"
+msgstr "Bénéficiaire (facultatif)"
+
+#. DocType: Bilty Charge
+msgid "Billable to Customer"
+msgstr "Facturable au client"
+
+#. DocType: Trip Expense Type
+msgid "Billable to Customer by Default"
+msgstr "Facturable au client par défaut"
+
+#. DocType: Bilty
+msgid "Billing Customer"
+msgstr "Client facturé"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Bilties"
+msgstr "Lettres de voiture"
+
+#. Custom Field - description: Sales Invoice-bilty_references
+msgid "Bilties consolidated into this invoice. Populated by the Create Sales Invoice action on Bilty."
+msgstr "Lettres de voiture regroupées sur cette facture. Renseignées par l’action de création de facture depuis une lettre de voiture."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Bilties on this Trip"
+msgstr "Lettres de voiture de cette mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.js
+msgid "Bilties under this Order"
+msgstr "Lettres de voiture de cette commande"
+
+#. DocType: Bilty
+msgid "Bilty"
+msgstr "Lettre de voiture"
+
+#. DocType: Bilty Charge
+msgid "Bilty Charge"
+msgstr "Frais de la lettre de voiture"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.py
+msgid "Bilty company {0} does not match Order company {1}."
+msgstr "La société {0} de la lettre de voiture diffère de la société {1} de la commande."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.py
+msgid "Bilty company {0} does not match Trip company {1}."
+msgstr "La société {0} de la lettre de voiture diffère de la société {1} de la mission."
+
+#. DocType: Transport Trip
+msgid "Bilty Count"
+msgstr "Nombre de lettres de voiture"
+
+#. DocType: Bilty
+msgid "Bilty Date"
+msgstr "Date de la lettre de voiture"
+
+#. DocType: Bilty Item
+msgid "Bilty Item"
+msgstr "Article de la lettre de voiture"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Bilty must be submitted before recording POD."
+msgstr "Validez la lettre de voiture avant d’enregistrer la preuve de livraison."
+
+#. DocType: Bilty Reference
+msgid "Bilty Reference"
+msgstr "Référence de la lettre de voiture"
+
+#. Custom Field - label: Sales Invoice-bilty_references
+msgid "Bilty References"
+msgstr "Références de la lettre de voiture"
+
+msgid "Bilty Register"
+msgstr "Registre des lettres de voiture"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/proof_of_delivery/proof_of_delivery.py
+msgid "Bilty {0} does not exist."
+msgstr "La lettre de voiture {0} n’existe pas."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Bilty {0} does not have a full, valid delivery quantity."
+msgstr "La lettre de voiture {0} ne contient aucune quantité livrée complète et valide."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Bilty {0} has no Freight Item set."
+msgstr "Aucun article de fret n’est renseigné sur la lettre de voiture {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Bilty {0} is already linked to Sales Invoice {1}."
+msgstr "La lettre de voiture {0} est déjà liée à la facture client {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Bilty {0} is not submitted."
+msgstr "La lettre de voiture {0} doit être validée."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Bilty {0} requires a submitted Proof of Delivery."
+msgstr "La lettre de voiture {0} exige une preuve de livraison validée."
+
+#. DocType: Transport Order
+msgid "Booking Date"
+msgstr "Date de réservation"
+
+#. DocType: Transport Order
+msgid "Booking Person"
+msgstr "Personne ayant effectué la réservation"
+
+#. apps/goods_transport/goods_transport/public/js/transport_trip.js
+msgid "Calculating driver earning..."
+msgstr "Calcul de la rémunération du chauffeur…"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/proof_of_delivery/proof_of_delivery.py
+msgid "Cancel the submitted Sales Invoice before cancelling this Proof of Delivery."
+msgstr "Annulez la facture client validée avant d’annuler cette preuve de livraison."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Cannot book expense against Trip {0}: it is {1}."
+msgstr "Impossible d’enregistrer une dépense pour la mission {0} dont le statut est {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.py
+msgid "Cannot cancel Bilty {0}: it is linked to Sales Invoice {1}. Cancel the invoice first."
+msgstr "Impossible d’annuler la lettre de voiture {0}, liée à la facture client {1}. Annulez d’abord la facture."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.py
+msgid "Cannot cancel Transport Order {0}: {1} active Bilty record(s) reference it. Cancel them first."
+msgstr "Impossible d’annuler la commande de transport {0}. Elle est référencée par {1} lettre(s) de voiture active(s). Annulez-les d’abord."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Cannot cancel Transport Trip {0}: {1} active Bilty record(s) reference it. Cancel them first."
+msgstr "Impossible d’annuler la mission {0}. Elle est référencée par {1} lettre(s) de voiture active(s). Annulez-les d’abord."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Cannot create Bilty against a cancelled Trip."
+msgstr "Impossible de créer une lettre de voiture pour une mission annulée."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_trip_earning/driver_trip_earning.py
+msgid "Cannot delete {0}: it has been paid through Driver Payroll Run {1}."
+msgstr "Impossible de supprimer {0}. Ce montant a été payé via le traitement de paie des chauffeurs {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Cannot move Trip status from {0} back to {1}."
+msgstr "Impossible de ramener le statut de la mission de {0} à {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_advance/trip_advance.py
+msgid "Cannot pay advance on Trip {0}: it is {1}."
+msgstr "Impossible de verser une avance pour la mission {0} dont le statut est {1}."
+
+#. DocType: Transport Trip
+msgid "Capacity Utilization"
+msgstr "Taux de chargement"
+
+#. DocType: Bilty
+msgid "Cargo"
+msgstr "Marchandises"
+
+#. DocType: Trip Expense
+msgid "Cash / Bank Account"
+msgstr "Compte de caisse ou de banque"
+
+#. DocType: Trip Advance
+msgid "Cash / Bank account funds are paid out from."
+msgstr "Compte de caisse ou de banque utilisé pour le décaissement."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_advance_settlement/driver_advance_settlement.py
+msgid "Cash Returned"
+msgstr "Espèces restituées"
+
+#. DocType: Trip Settlement
+msgid "Cash Returned by Driver"
+msgstr "Espèces restituées par le chauffeur"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "Choose distinct itinerary stops."
+msgstr "Choisissez des étapes distinctes."
+
+#. DocType: Fuel Authorization
+msgid "Closed At"
+msgstr "Date et heure de clôture"
+
+#. DocType: Fuel Authorization
+msgid "Closed By"
+msgstr "Clôturé par"
+
+#. DocType: Transport Order
+msgid "Commercial Terms"
+msgstr "Conditions commerciales"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "Commission %"
+msgstr "Taux de commission (%)"
+
+#. DocType: Driver Pay Rule
+#, no-python-format
+msgid "Commission % of Trip Freight"
+msgstr "Commission sur le fret de la mission (%)"
+
+#. DocType: Driver Payroll Detail
+msgid "Commission Amount"
+msgstr "Montant de la commission"
+
+#. DocType: Driver Pay Rule
+msgid "Commission Component"
+msgstr "Rubrique de commission"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transport_order_status/transport_order_status.py
+msgid "Commodity"
+msgstr "Marchandise"
+
+#. DocType: Transport Order
+msgid "Commodity (Item)"
+msgstr "Marchandise (article)"
+
+#. DocType: Trip Expense
+msgid "Company Cash/Bank"
+msgstr "Caisse ou banque de la société"
+
+#. DocType: Trip Expense Type
+msgid "Company-agnostic root account, e.g. 'Freight Expenses'. Actual company account is resolved from this."
+msgstr "Compte racine commun aux sociétés, par exemple « Frais de fret ». Le compte de la société est déterminé à partir de ce compte."
+
+#. DocType: Transport Trip
+msgid "Completion Time"
+msgstr "Heure de fin"
+
+#. DocType: Transport Trip
+msgid "Computed from the Driver Pay Rule once the Trip is delivered."
+msgstr "Calculé selon la règle de rémunération du chauffeur une fois la mission livrée."
+
+#. DocType: Bilty
+msgid "Consignee"
+msgstr "Destinataire"
+
+#. DocType: Proof of Delivery
+msgid "Consignment"
+msgstr "Expédition"
+
+#. DocType: Bilty
+msgid "Consignor"
+msgstr "Expéditeur"
+
+#. DocType: Trip Settlement
+msgid "Consumed From Advance"
+msgstr "Utilisé sur l’avance"
+
+#. DocType: Fuel Contract Reserve
+msgid "Consumed Liters"
+msgstr "Litres utilisés"
+
+#. DocType: Transport Location
+msgid "Container Yard"
+msgstr "Parc à conteneurs"
+
+#. DocType: Fuel Contract Reserve
+msgid "Contract Reference"
+msgstr "Référence du contrat"
+
+#. DocType: Trip Settlement
+msgid "Cost"
+msgstr "Coût"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/customer_profitability/customer_profitability.py
+msgid "Cost (apportioned)"
+msgstr "Coût réparti"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Could not allocate {0} of advance recovery for {1} — the outstanding advances have changed. Re-fetch the run and try again."
+msgstr "Impossible d’affecter {0} de récupération pour {1}. Les avances en cours ont changé. Rechargez les données et réessayez."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Create Bilty"
+msgstr "Créer une lettre de voiture"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Create Bilty under {0}"
+msgstr "Créer une lettre de voiture pour {0}"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Create PI"
+msgstr "Créer une facture fournisseur"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.js
+msgid "Create Trip"
+msgstr "Créer une mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.js
+msgid "Create Trip for Order {0}"
+msgstr "Créer une mission pour la commande {0}"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Create Vehicle Hire PI for {0}"
+msgstr "Créer une facture de location de véhicule pour {0}"
+
+#. apps/goods_transport/goods_transport/setup/install_salary_components.py
+msgid "Created by Transporter Payroll."
+msgstr "Créé par la paie des transporteurs."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Created {0} Additional Salary record(s). They will be picked up by the Salary Slips covering {1}."
+msgstr "{0} complément(s) de salaire créé(s). Ils seront repris dans les bulletins de paie couvrant {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.js
+msgid "Creating Sales Invoice..."
+msgstr "Création de la facture client…"
+
+#. DocType: Bilty
+msgid "Customer Challan #"
+msgstr "Nº du bordereau client"
+
+#. DocType: Bilty
+msgid "Customer order this Bilty fulfils (partially or wholly)."
+msgstr "Commande client couverte en tout ou partie par cette lettre de voiture."
+
+msgid "Customer Profitability"
+msgstr "Rentabilité par client"
+
+#. DocType: Trip Expense
+msgid "Customer Recovery"
+msgstr "Montant à refacturer au client"
+
+#. DocType: Transport Order
+msgid "Customer Reference"
+msgstr "Référence client"
+
+#. DocType: Transport Location
+msgid "Customer Site"
+msgstr "Site du client"
+
+#. DocType: Bilty
+msgid "Customer to be invoiced. Defaults to Customer if left blank."
+msgstr "Client à facturer. Si ce champ est vide, le client de la commande sera utilisé."
+
+#. DocType: Proof of Delivery
+msgid "Damaged Quantity"
+msgstr "Quantité endommagée"
+
+#. DocType: Driver Payroll Run
+msgid "Date stamped on the Additional Salary records. Must fall inside the payroll period the Salary Slips will cover."
+msgstr "Date inscrite sur les compléments de salaire. Elle doit appartenir à la période couverte par les bulletins de paie."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/pending_pod/pending_pod.py
+msgid "Days Open"
+msgstr "Jours depuis l’ouverture"
+
+#. DocType: Vehicle Type
+msgid "Default cargo volume in cubic metres."
+msgstr "Volume de marchandises par défaut en mètres cubes."
+
+#. Custom Field - label: Vehicle-default_driver
+msgid "Default Driver"
+msgstr "Chauffeur par défaut"
+
+#. DocType: Trip Expense Type
+msgid "Default Item"
+msgstr "Article par défaut"
+
+#. DocType: Vehicle Type
+msgid "Default Payload Capacity (kg)"
+msgstr "Charge utile par défaut (kg)"
+
+#. DocType: Vehicle Type
+msgid "Default payload capacity in kilograms."
+msgstr "Charge utile par défaut en kilogrammes."
+
+#. DocType: Vehicle Type
+msgid "Default Volume Capacity (m³)"
+msgstr "Capacité volumique par défaut (m³)"
+
+#. DocType: Bilty
+msgid "Delivered"
+msgstr "Livré"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transporter_performance/transporter_performance.py
+msgid "Delivered %"
+msgstr "Pourcentage livré"
+
+#. DocType: Fuel Authorization
+msgid "Delivered Liters"
+msgstr "Litres délivrés"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/proof_of_delivery/proof_of_delivery.py
+msgid "Delivered quantity must be between zero and the shipped quantity ({0})."
+msgstr "La quantité livrée doit être comprise entre zéro et la quantité expédiée ({0})."
+
+#. DocType: Trip Settlement
+msgid "Delivered/POD-received Bilties not yet on any Sales Invoice."
+msgstr "Lettres de voiture livrées ou avec preuve de livraison, sans facture client."
+
+#. DocType: Bilty
+msgid "Delivery Challan #"
+msgstr "Nº du bordereau de livraison"
+
+#. DocType: Proof of Delivery
+msgid "Delivery Document"
+msgstr "Document de livraison"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Delivery has not been recorded for Bilty {0}."
+msgstr "La livraison de la lettre de voiture {0} reste à enregistrer."
+
+#. DocType: Bilty
+msgid "Delivery Location"
+msgstr "Lieu de livraison"
+
+#. DocType: Proof of Delivery
+msgid "Delivery Time"
+msgstr "Heure de livraison"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Departure"
+msgstr "Départ"
+
+#. DocType: Transport Location
+msgid "Depot"
+msgstr "Dépôt"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transport_order_status/transport_order_status.py
+msgid "Dispatched"
+msgstr "Expédié"
+
+#. DocType: Transport Order
+msgid "Dispatched Quantity"
+msgstr "Quantité expédiée"
+
+#. DocType: Transport Route
+msgid "Distance & Duration"
+msgstr "Distance et durée"
+
+#. DocType: Transport Route
+msgid "Distance (km)"
+msgstr "Distance (km)"
+
+#. DocType: Driver Trip Earning
+msgid "Distance (KM)"
+msgstr "Distance (km)"
+
+#. DocType: Driver Payroll Detail
+msgid "Distance Amount"
+msgstr "Montant calculé sur la distance"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_earnings_register/driver_earnings_register.py
+msgid "Distance Amt"
+msgstr "Montant à la distance"
+
+#. DocType: Driver Pay Rule
+msgid "Distance Component"
+msgstr "Rubrique de rémunération à la distance"
+
+#. DocType: Bilty
+msgid "Driver"
+msgstr "Chauffeur"
+
+#. DocType: Trip Settlement
+msgid "Driver / Advance Reconciliation"
+msgstr "Rapprochement des avances chauffeur"
+
+#. DocType: Driver Advance Recovery
+msgid "Driver Advance Recovery"
+msgstr "Récupération d’avance chauffeur"
+
+msgid "Driver Advance Recovery Status"
+msgstr "État de récupération des avances chauffeur"
+
+msgid "Driver Advance Settlement"
+msgstr "Règlement des avances chauffeur"
+
+#. DocType: Transport Trip
+msgid "Driver Allowance"
+msgstr "Indemnité chauffeur"
+
+#. DocType: Trip Settlement
+msgid "Driver Allowance (Planned)"
+msgstr "Indemnité chauffeur prévue"
+
+msgid "Driver Cost Per Trip"
+msgstr "Coût chauffeur par mission"
+
+#. apps/goods_transport/goods_transport/public/js/transport_trip.js
+msgid "Driver Earning"
+msgstr "Gain chauffeur"
+
+#. apps/goods_transport/goods_transport/public/js/transport_trip.js
+msgid "Driver Earning: {0} ({1})"
+msgstr "Gain chauffeur : {0} ({1})"
+
+#. DocType: Driver Payroll Run
+msgid "Driver Earnings"
+msgstr "Gains des chauffeurs"
+
+msgid "Driver Earnings Register"
+msgstr "Registre des gains des chauffeurs"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_cost_per_trip/driver_cost_per_trip.py
+msgid "Driver Pay"
+msgstr "Rémunération chauffeur"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_cost_per_trip/driver_cost_per_trip.py
+msgid "Driver Pay %"
+msgstr "Taux de rémunération chauffeur (%)"
+
+#. DocType: Trip Settlement
+msgid "Driver Pay (Payroll)"
+msgstr "Rémunération chauffeur en paie"
+
+#. DocType: Driver Pay Rule
+msgid "Driver Pay Rule"
+msgstr "Règle de rémunération chauffeur"
+
+#. DocType: Driver Payroll Detail
+msgid "Driver Payroll Detail"
+msgstr "Détail de la paie chauffeur"
+
+#. DocType: Driver Payroll Run
+msgid "Driver Payroll Run"
+msgstr "Traitement de paie des chauffeurs"
+
+#. DocType: Driver Trip Earning
+msgid "Driver Trip Earning"
+msgstr "Gain chauffeur par mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Driver Trip Earning {0} created."
+msgstr "Gain chauffeur par mission {0} créé."
+
+#. DocType: Transport Trip
+msgid "Driver Trip Pay"
+msgstr "Rémunération du chauffeur pour la mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Driver {0} appears more than once."
+msgstr "Le chauffeur {0} apparaît plusieurs fois."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Driver {0} has no linked Employee, so no payroll earning is generated. Link an Employee on the Driver record if this driver is on our payroll."
+msgstr "Aucun employé n’est lié au chauffeur {0}. Aucun gain de paie n’a été calculé. Si ce chauffeur est salarié, liez un employé à sa fiche."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Driver {0} is not linked to an Employee. Set the Employee field on the Driver record — payroll cannot run without it."
+msgstr "Aucun employé n’est lié au chauffeur {0}. Renseignez le champ Employé sur sa fiche pour effectuer la paie."
+
+#. DocType: Driver Payroll Run
+msgid "Drivers"
+msgstr "Chauffeurs"
+
+#. DocType: Transport Location
+msgid "Dry Port"
+msgstr "Port sec"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/trip_finance.py
+msgid "Déjà imputé via Trip Expense"
+msgstr "Déjà imputé via une dépense de mission"
+
+#. DocType: Driver Payroll Detail
+msgid "Editable — reduce it to spread recovery over more months."
+msgstr "Vous pouvez réduire le montant pour étaler la récupération sur plusieurs mois."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Employee {0} ({1}) is {2}. Only Active employees can be paid."
+msgstr "Le statut de l’employé {0} ({1}) est {2}. Seuls les employés actifs peuvent être payés."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Employee {0} not found."
+msgstr "Employé {0} introuvable."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/trip_expense_analysis/trip_expense_analysis.py
+msgid "Entries"
+msgstr "Écritures"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transport_order_status/transport_order_status.py
+msgid "Estimated"
+msgstr "Estimé"
+
+#. DocType: Transport Order
+msgid "Estimated Freight"
+msgstr "Fret estimé"
+
+#. DocType: Transport Route
+msgid "Estimated Fuel (litres)"
+msgstr "Carburant estimé (litres)"
+
+#. DocType: Transport Route
+msgid "Estimated Toll"
+msgstr "Péages estimés"
+
+#. DocType: Transport Order
+msgid "Estimated Total"
+msgstr "Total estimé"
+
+#. DocType: Transport Trip
+msgid "Estimated Trip Cost"
+msgstr "Coût estimé de la mission"
+
+#. DocType: Driver Pay Rule
+msgid "Every basis with a non-zero rate is applied and added together for each completed Trip."
+msgstr "Pour chaque mission terminée, les montants calculés selon toutes les bases à taux non nul sont additionnés."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transporter_performance/transporter_performance.py
+msgid "Exceptions"
+msgstr "Anomalies"
+
+#. DocType: Transport Route
+msgid "Expected Duration (hours)"
+msgstr "Durée prévue (heures)"
+
+#. DocType: Transport Order
+msgid "Expected Loading Date"
+msgstr "Date de chargement prévue"
+
+#. DocType: Trip Expense Type
+msgid "Expense Type Name"
+msgstr "Nom du type de dépense"
+
+#. DocType: Transport Location
+msgid "Factory"
+msgstr "Usine"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "Fetch Trip Earnings"
+msgstr "Charger les gains par mission"
+
+#. DocType: Fleet Toll Rate
+msgid "Fleet Toll Rate"
+msgstr "Tarif de péage poids lourd"
+
+#. DocType: Bilty
+msgid "Freight"
+msgstr "Fret"
+
+#. DocType: Bilty
+msgid "Freight Amount"
+msgstr "Montant du fret"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Freight for Bilty {0}: {1} → {2}"
+msgstr "Fret de la lettre de voiture {0} : {1} → {2}"
+
+#. DocType: Bilty
+msgid "Freight Item"
+msgstr "Article de fret"
+
+#. DocType: Bilty
+msgid "Freight Quantity"
+msgstr "Quantité de fret"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_cost_per_trip/driver_cost_per_trip.py
+msgid "Freight Revenue"
+msgstr "Recettes de fret"
+
+#. DocType: Transport Trip
+msgid "Freight service Item billed on Sales Invoices for Bilties on this Trip. Prefills each Bilty's freight_item unless overridden."
+msgstr "Article de service de fret facturé pour les lettres de voiture de cette mission. Préremplit l’article de fret de chaque lettre de voiture."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "From Date must be on or before To Date."
+msgstr "La date de début doit précéder ou coïncider avec la date de fin."
+
+#. DocType: Fuel Authorization
+msgid "Fuel Authorization"
+msgstr "Autorisation de ravitaillement"
+
+#. DocType: Fuel Contract Reserve
+msgid "Fuel Contract Reserve"
+msgstr "Réserve contractuelle de carburant"
+
+#. DocType: Fuel Partner Station
+msgid "Fuel Partner Station"
+msgstr "Station-service partenaire"
+
+#. DocType: Fuel Reserve Credit
+msgid "Fuel Reserve Credit"
+msgstr "Crédit de réserve de carburant"
+
+#. DocType: Transport Order
+msgid "Fully Dispatched"
+msgstr "Entièrement expédié"
+
+#. DocType: Bilty
+msgid "Goods Transport"
+msgstr "Transport de marchandises"
+
+#. DocType: Trip Settlement
+msgid "Gross Profit less the driver's trip pay — the fully loaded trip margin."
+msgstr "Marge de la mission après déduction de la rémunération du chauffeur du bénéfice brut."
+
+#. DocType: Driver Payroll Detail
+msgid "Gross Trip Earning"
+msgstr "Gain brut de la mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/bilty_register/bilty_register.py
+msgid "Gross Wt"
+msgstr "Poids brut"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Hire Item"
+msgstr "Article de location"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.js
+msgid "Informational; used later by Bilties created under this Trip."
+msgstr "À titre indicatif. Utilisé ensuite par les lettres de voiture de cette mission."
+
+#. DocType: Bilty Charge
+msgid "Item"
+msgstr "Article"
+
+#. DocType: Bilty Charge
+msgid "Item that will appear on the Sales Invoice line for this charge."
+msgstr "Article qui figurera sur la ligne de facture client correspondant à ces frais."
+
+#. DocType: Bilty
+msgid "Item used as the Freight line on the generated Sales Invoice."
+msgstr "Article utilisé sur la ligne de fret de la facture client générée."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/cargo.py
+msgid "Item {0} is not a Cargo Item. Select an Item from the Cargo Items group for physical cargo. Freight and additional services belong in the Freight or Additional Charges sections."
+msgstr "L’article {0} n’est pas une marchandise. Choisissez un article du groupe Marchandises. Le fret et les services supplémentaires se renseignent dans les sections Fret ou Frais complémentaires."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_location/transport_location.py
+msgid "Latitude must be between -90 and 90."
+msgstr "La latitude doit être comprise entre −90 et 90."
+
+#. DocType: Driver Pay Rule
+msgid "Leave all three blank for a company-wide default rule. The most specific matching rule wins: Driver &gt; Vehicle Type + Route &gt; Vehicle Type &gt; Route &gt; company default."
+msgstr "Laissez les trois champs vides pour une règle par défaut de la société. Priorité : chauffeur &gt; type de véhicule + itinéraire &gt; type de véhicule &gt; itinéraire &gt; règle de la société."
+
+#. Custom Field - description: Vehicle-vehicle_owner
+msgid "Legal / financial owner of the vehicle. May differ from Transporter."
+msgstr "Propriétaire légal ou financier du véhicule. Il peut être distinct du transporteur."
+
+#. DocType: Bilty
+msgid "Linked Order & Trip"
+msgstr "Commande et mission liées"
+
+#. DocType: Fuel Reserve Credit
+msgid "Liters"
+msgstr "Litres"
+
+#. DocType: Transport Trip
+msgid "Load"
+msgstr "Chargement"
+
+#. DocType: Transport Trip
+msgid "Loaded"
+msgstr "Chargé"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Loaded (kg)"
+msgstr "Charge (kg)"
+
+#. DocType: Driver Trip Earning
+msgid "Loaded (Tons)"
+msgstr "Charge (t)"
+
+#. DocType: Transport Trip
+msgid "Loaded Weight (kg)"
+msgstr "Poids chargé (kg)"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Loaded weight {0} kg exceeds vehicle capacity {1} kg."
+msgstr "Le poids chargé de {0} kg dépasse la capacité de {1} kg du véhicule."
+
+#. DocType: Bilty
+msgid "Loading Location"
+msgstr "Lieu de chargement"
+
+#. DocType: Transport Trip
+msgid "Loading Time"
+msgstr "Heure de chargement"
+
+#. DocType: Transport Location
+msgid "Location Type"
+msgstr "Type de lieu"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_location/transport_location.py
+msgid "Longitude must be between -180 and 180."
+msgstr "La longitude doit être comprise entre −180 et 180."
+
+#. DocType: Trip Settlement
+msgid "Margin %"
+msgstr "Marge (%)"
+
+#. DocType: Transport Rate Contract
+msgid "Matching Criteria"
+msgstr "Critères d’application"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/trip_expense_analysis/trip_expense_analysis.py
+msgid "Max"
+msgstr "Max."
+
+#. DocType: Driver Pay Rule
+msgid "Max Recovery Per Month"
+msgstr "Montant maximal récupérable par mois"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/trip_expense_analysis/trip_expense_analysis.py
+msgid "Min"
+msgstr "Min."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/pending_pod/pending_pod.js
+msgid "Min Days Open"
+msgstr "Nombre minimal de jours depuis l’ouverture"
+
+#. DocType: Transport Rate Contract
+msgid "Minimum Charge"
+msgstr "Frais minimaux"
+
+#. DocType: Driver Pay Rule
+msgid "Must be a Deduction component whose account is the Driver Advance account."
+msgstr "La rubrique doit être une retenue associée au compte d’avances chauffeur."
+
+#. DocType: Driver Payroll Run
+msgid "Net Addition to Payroll"
+msgstr "Montant net ajouté à la paie"
+
+#. DocType: Driver Payroll Detail
+msgid "Net Addition to Salary"
+msgstr "Complément de salaire net"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "No active Driver Pay Rule matches Trip {0}. Create a company-wide default rule."
+msgstr "Aucune règle de rémunération active ne correspond à la mission {0}. Créez une règle par défaut pour la société."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "No Bilties supplied."
+msgstr "Aucune lettre de voiture renseignée."
+
+#. DocType: Bilty
+msgid "Not Required"
+msgstr "Facultatif"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Nothing to submit — fetch trip earnings first."
+msgstr "Chargez les gains par mission avant de valider."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Only submitted, still-open orders (Confirmed / Partially Dispatched) for the selected customer are shown."
+msgstr "Seules les commandes validées et encore ouvertes du client sélectionné sont affichées. Leur statut doit être Confirmé ou Partiellement expédié."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transport_order_status/transport_order_status.js
+msgid "Open Only"
+msgstr "Ouverts uniquement"
+
+#. DocType: Transport Location
+msgid "Operational Notes"
+msgstr "Notes d’exploitation"
+
+#. DocType: Transport Rate Contract
+msgid "Optional. If set, origin and destination are prefilled from the route."
+msgstr "Facultatif. L’origine et la destination sont préremplies depuis l’itinéraire choisi."
+
+#. DocType: Transport Rate Contract
+msgid "Optional. Restrict contract to a specific commodity/item."
+msgstr "Facultatif. Limite le contrat à une marchandise ou à un article précis."
+
+#. DocType: Transport Rate Contract
+msgid "Optional. Restrict contract to a specific vehicle type."
+msgstr "Facultatif. Limite le contrat à un type de véhicule précis."
+
+#. DocType: Transport Rate Contract
+msgid "Optional. UOM the rate is expressed against (kg, ton, km, package, ...)."
+msgstr "Facultatif. Unité de mesure du tarif (kg, tonne, km, colis, etc.)."
+
+#. DocType: Trip Expense Type
+msgid "Optional. Used when the expense is billed via a Purchase Invoice."
+msgstr "Facultatif. Utilisé si la dépense fait l’objet d’une facture fournisseur."
+
+#. DocType: Bilty
+msgid "Origin"
+msgstr "Origine"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_route/transport_route.py
+msgid "Origin and Destination must be different."
+msgstr "L’origine et la destination doivent être différentes."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "OSRM found no route between these stops. Check their coordinates."
+msgstr "OSRM n’a trouvé aucun itinéraire entre ces étapes. Vérifiez leurs coordonnées."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "OSRM is temporarily unavailable. Try again later."
+msgstr "OSRM est temporairement indisponible. Réessayez plus tard."
+
+#. DocType: Driver Payroll Detail
+msgid "Outstanding Advance"
+msgstr "Avance restant à régulariser"
+
+#. DocType: Trip Settlement
+msgid "Outstanding From Driver"
+msgstr "Solde dû par le chauffeur"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_advance_settlement/driver_advance_settlement.js
+msgid "Outstanding Only"
+msgstr "Soldes ouverts uniquement"
+
+#. DocType: Transport Trip
+msgid "Ownership Type"
+msgstr "Type de propriété"
+
+#. DocType: Transport Order
+msgid "Package Count"
+msgstr "Nombre de colis"
+
+#. DocType: Transport Order
+msgid "Partially Dispatched"
+msgstr "Partiellement expédié"
+
+#. DocType: Bilty
+msgid "Parties"
+msgstr "Parties prenantes"
+
+#. Custom Field - description: Vehicle-transporter
+msgid "Party responsible for the vehicle in operations (for hire vehicles)."
+msgstr "Partie chargée de l’exploitation du véhicule dans le cas d’une location."
+
+#. DocType: Driver Payroll Detail
+msgid "Pay Rule"
+msgstr "Règle de rémunération"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Pay Rule for {0} does not define a Recovery Component, so the advance cannot be deducted."
+msgstr "La règle de {0} ne comporte aucune rubrique de retenue. L’avance ne peut pas être déduite."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Pay Rule {0} yields no earning for Trip {1}."
+msgstr "La règle {0} ne produit aucun gain pour la mission {1}."
+
+#. DocType: Trip Advance
+msgid "Paying Account"
+msgstr "Compte de paiement"
+
+#. Custom Field - label: Vehicle-payload_capacity
+msgid "Payload Capacity (kg)"
+msgstr "Charge utile (kg)"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Payroll Date cannot be before the period's From Date."
+msgstr "La date de paie doit être égale ou postérieure au début de la période."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Payroll Date {0} is before {1}'s joining date {2}."
+msgstr "La date de paie {0} précède la date d’embauche de {1}, le {2}."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_earnings_register/driver_earnings_register.py
+msgid "Payroll Run"
+msgstr "Traitement de paie"
+
+msgid "Pending POD"
+msgstr "Preuves de livraison en attente"
+
+#. DocType: Trip Settlement
+msgid "Pending Revenue (Unbilled)"
+msgstr "Recettes à facturer"
+
+#. DocType: Bilty
+msgid "Per Kg"
+msgstr "Par kg"
+
+#. DocType: Bilty
+msgid "Per KM"
+msgstr "Par km"
+
+#. DocType: Bilty
+msgid "Per Package"
+msgstr "Par colis"
+
+#. DocType: Bilty
+msgid "Per Ton"
+msgstr "Par tonne"
+
+#. DocType: Bilty
+msgid "Per Trip"
+msgstr "Par mission"
+
+#. DocType: Bilty
+msgid "Per Vehicle"
+msgstr "Par véhicule"
+
+#. DocType: Trip Expense
+msgid "Person the cash was paid to. Purely informational."
+msgstr "Personne à laquelle les espèces ont été versées, à titre indicatif."
+
+#. DocType: Bilty
+msgid "Physical vehicle trip carrying this Bilty. May be assigned before or after the Bilty is created."
+msgstr "Mission qui achemine les marchandises de cette lettre de voiture. Elle peut être attribuée avant ou après la création du document."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/bilty_register/bilty_register.py
+msgid "Pkgs"
+msgstr "Colis"
+
+#. DocType: Transport Trip
+msgid "Planned Distance (km)"
+msgstr "Distance prévue (km)"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/vehicle_trip_history/vehicle_trip_history.py
+msgid "Planned km"
+msgstr "Kilométrage prévu"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Plate"
+msgstr "Immatriculation"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/bilty_register/bilty_register.py
+msgid "POD"
+msgstr "Preuve de livraison"
+
+#. DocType: Proof of Delivery
+msgid "POD Photo"
+msgstr "Photo de la preuve de livraison"
+
+#. DocType: Bilty
+msgid "POD Received"
+msgstr "Preuve de livraison reçue"
+
+#. DocType: Bilty
+msgid "POD Required"
+msgstr "Preuve de livraison requise"
+
+#. DocType: Bilty
+msgid "POD Status"
+msgstr "État de la preuve de livraison"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.js
+msgid "POD {0} created and submitted."
+msgstr "Preuve de livraison {0} créée et validée."
+
+#. DocType: Driver Trip Earning
+msgid "Processed"
+msgstr "Traité"
+
+#. DocType: Trip Settlement
+msgid "Profit After Driver Pay"
+msgstr "Marge après rémunération chauffeur"
+
+#. DocType: Bilty
+msgid "Proof of Delivery"
+msgstr "Preuve de livraison"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_order/transport_order.js
+msgid "Quantity Allocated"
+msgstr "Quantité affectée"
+
+#. DocType: Bilty
+msgid "Quantity used to compute Freight Amount = Rate × Freight Quantity."
+msgstr "La quantité de fret multipliée par le tarif donne le montant du fret."
+
+#. DocType: Bilty
+msgid "Rate Basis"
+msgstr "Base tarifaire"
+
+#. DocType: Bilty
+msgid "Rate Contract"
+msgstr "Contrat tarifaire"
+
+#. DocType: Bilty
+msgid "Rate Contract matched at Bilty creation, if any. Rate remains manually editable."
+msgstr "Contrat tarifaire applicable à la création de la lettre de voiture, le cas échéant. Le tarif reste modifiable."
+
+#. DocType: Driver Pay Rule
+msgid "Rate Per KM"
+msgstr "Tarif par km"
+
+#. DocType: Driver Pay Rule
+msgid "Rate Per Ton"
+msgstr "Tarif par tonne"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "Reading completed trips..."
+msgstr "Chargement des missions terminées…"
+
+#. DocType: Proof of Delivery
+msgid "Receiver"
+msgstr "Réceptionnaire"
+
+#. DocType: Proof of Delivery
+msgid "Receiver Contact"
+msgstr "Contact du réceptionnaire"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.js
+msgid "Receiver Name"
+msgstr "Nom du réceptionnaire"
+
+#. DocType: Trip Advance
+msgid "Receiver Name (Snapshot)"
+msgstr "Nom du réceptionnaire à l’enregistrement"
+
+#. DocType: Trip Advance
+msgid "Recipient Type"
+msgstr "Type de destinataire"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.js
+msgid "Record POD"
+msgstr "Enregistrer la preuve de livraison"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty.js
+msgid "Record Proof of Delivery"
+msgstr "Enregistrer la preuve de livraison"
+
+#. DocType: Driver Pay Rule
+msgid "Recover Trip Advances From Salary"
+msgstr "Récupérer les avances sur le salaire"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/trip_expense_analysis/trip_expense_analysis.py
+msgid "Recoverable"
+msgstr "Récupérable"
+
+#. DocType: Trip Expense
+msgid "Recoverable Amount"
+msgstr "Montant récupérable"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Recoverable amount cannot exceed the expense amount."
+msgstr "Le montant récupérable ne peut pas dépasser la dépense."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_advance_recovery_status/driver_advance_recovery_status.py
+msgid "Recovered from Salary"
+msgstr "Récupéré sur le salaire"
+
+#. DocType: Driver Advance Recovery
+msgid "Recovered Now"
+msgstr "Récupéré maintenant"
+
+#. DocType: Driver Payroll Run
+msgid "Recoveries"
+msgstr "Récupérations"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "Recovery cannot exceed the outstanding advance of {0}."
+msgstr "La récupération ne peut pas dépasser le solde de l’avance de {0}."
+
+#. DocType: Driver Pay Rule
+msgid "Recovery Component"
+msgstr "Rubrique de retenue"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "Recovery Component is required when advances are recovered from salary."
+msgstr "Une rubrique de retenue est requise pour récupérer les avances sur le salaire."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "Recovery Component {0} must be of type Deduction."
+msgstr "La rubrique {0} doit être de type Retenue."
+
+#. DocType: Driver Payroll Detail
+msgid "Recovery This Month"
+msgstr "Récupération ce mois-ci"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "Recovery {0} for {1} exceeds the outstanding advance {2}."
+msgstr "La récupération de {0} pour {1} dépasse le solde de l’avance de {2}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_settlement/trip_settlement.js
+msgid "Refresh From Source"
+msgstr "Actualiser depuis la source"
+
+#. DocType: Fuel Contract Reserve
+msgid "Remaining Liters"
+msgstr "Litres restants"
+
+#. DocType: Transport Order
+msgid "Remaining Quantity"
+msgstr "Quantité restante"
+
+#. DocType: Transport Trip
+msgid "Reporting Time"
+msgstr "Heure de présentation"
+
+#. DocType: Trip Expense Type
+msgid "Requires Receipt"
+msgstr "Justificatif requis"
+
+#. DocType: Fuel Contract Reserve
+msgid "Reserved Liters"
+msgstr "Litres réservés"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "Route preview is unavailable on this site."
+msgstr "L’aperçu de l’itinéraire est indisponible sur ce site."
+
+msgid "Route Profitability"
+msgstr "Rentabilité par itinéraire"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/cargo.py
+msgid "Row {0}: "
+msgstr "Ligne {0} : "
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "Salary Component {0} must be of type Earning."
+msgstr "La rubrique de salaire {0} doit être de type Gain."
+
+#. DocType: Trip Settlement
+msgid "Sales Invoice Count"
+msgstr "Nombre de factures client"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Select a toll station."
+msgstr "Sélectionnez une gare de péage."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/bilty/bilty_list.js
+msgid "Select at least one Bilty."
+msgstr "Sélectionnez au moins une lettre de voiture."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Selected Bilties belong to different billing customers: {0}"
+msgstr "Les lettres de voiture sélectionnées concernent des clients facturés différents : {0}"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Selected Bilties belong to different companies: {0}"
+msgstr "Les lettres de voiture sélectionnées concernent des sociétés différentes : {0}"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/billing.py
+msgid "Selected Bilties have different currencies: {0}"
+msgstr "Les lettres de voiture sélectionnées utilisent des devises différentes : {0}"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "Set valid GPS coordinates for {0}."
+msgstr "Renseignez des coordonnées GPS valides pour {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_advance_settlement/driver_advance_settlement.py
+msgid "Settlement"
+msgstr "Règlement"
+
+#. DocType: Trip Settlement
+msgid "Settlement Date"
+msgstr "Date de règlement"
+
+#. DocType: Bilty Item
+msgid "Shipment-specific detail: container / seal number, serial number, dimensions, hazardous class, special handling, etc."
+msgstr "Détails propres à l’expédition : numéro de conteneur ou de scellé, numéro de série, dimensions, classe de danger, consignes de manutention, etc."
+
+#. DocType: Proof of Delivery
+msgid "Shipped Quantity"
+msgstr "Quantité expédiée"
+
+#. DocType: Proof of Delivery
+msgid "Short Quantity"
+msgstr "Quantité manquante"
+
+#. DocType: Bilty
+msgid "Snapshot of the vehicle's license plate at submit time. Preserved even if Vehicle master changes later."
+msgstr "Immatriculation du véhicule au moment de la validation. Elle est conservée même si la fiche du véhicule change ensuite."
+
+#. DocType: Bilty
+msgid "Specific delivery point within the destination (address, gate, building, etc.). Free-text — the general place is Destination above."
+msgstr "Point de livraison précis à destination (adresse, portail, bâtiment, etc.). Champ libre. Le lieu général figure dans le champ Destination."
+
+#. DocType: Transport Order
+msgid "Specific delivery point within the destination (address, gate, building, etc.). Free-text."
+msgstr "Point de livraison précis à destination (adresse, portail, bâtiment, etc.). Champ libre."
+
+#. DocType: Bilty
+msgid "Specific loading point within the origin (address, gate, building, etc.). Free-text — the general place is Origin above."
+msgstr "Point de chargement précis au départ (adresse, portail, bâtiment, etc.). Champ libre. Le lieu général figure dans le champ Origine."
+
+#. DocType: Transport Order
+msgid "Specific loading point within the origin (address, gate, building, etc.). Free-text."
+msgstr "Point de chargement précis au départ (adresse, portail, bâtiment, etc.). Champ libre."
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_advance_recovery_status/driver_advance_recovery_status.py
+msgid "Spent on Trip"
+msgstr "Dépensé pour la mission"
+
+#. DocType: Fuel Partner Station
+msgid "Station Name"
+msgstr "Nom de la station"
+
+#. DocType: Fuel Partner Station
+msgid "Station User"
+msgstr "Utilisateur de la station"
+
+#. DocType: Fuel Partner Station
+msgid "Street Address"
+msgstr "Adresse"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Submit a Trip Settlement to settle the Trip."
+msgstr "Validez un règlement pour régulariser la mission."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Submit Bilty {0} before marking the Trip delivered."
+msgstr "Validez la lettre de voiture {0} avant de marquer la mission comme livrée."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Submit the Sales Invoice for Bilty {0} before closing the Trip."
+msgstr "Validez la facture client de la lettre de voiture {0} avant de clôturer la mission."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Submit the Trip Settlement before closing the Trip."
+msgstr "Validez le règlement avant de clôturer la mission."
+
+#. DocType: Trip Expense
+msgid "Supplier (Third-Party)"
+msgstr "Fournisseur tiers"
+
+#. DocType: Trip Expense
+msgid "Third-Party Bill"
+msgstr "Facture d’un tiers"
+
+#. apps/goods_transport/goods_transport/public/js/driver.js
+msgid "This Driver has no Employee record linked. Trip earnings cannot be paid through payroll until one is set."
+msgstr "Aucun employé n’est lié à ce chauffeur. Liez un employé pour payer les gains de mission via la paie."
+
+#. DocType: Transport Trip
+msgid "Timings"
+msgstr "Horaires"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "To Status"
+msgstr "Statut cible"
+
+#. DocType: Driver Payroll Detail
+msgid "Tonnage Amount"
+msgstr "Montant basé sur le tonnage"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_earnings_register/driver_earnings_register.py
+msgid "Tonnage Amt"
+msgstr "Montant au tonnage"
+
+#. DocType: Driver Pay Rule
+msgid "Tonnage Component"
+msgstr "Rubrique de rémunération au tonnage"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_earnings_register/driver_earnings_register.py
+msgid "Tons"
+msgstr "Tonnes"
+
+#. DocType: Driver Payroll Run
+msgid "Total Advance Recovery"
+msgstr "Total des avances récupérées"
+
+#. DocType: Trip Settlement
+msgid "Total Advances Paid"
+msgstr "Total des avances versées"
+
+#. DocType: Bilty
+msgid "Total Gross Weight"
+msgstr "Poids brut total"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/transporter_performance/transporter_performance.py
+msgid "Total Hire"
+msgstr "Coût total de location"
+
+#. DocType: Bilty
+msgid "Total Packages"
+msgstr "Nombre total de colis"
+
+#. DocType: Trip Settlement
+msgid "Total Revenue (Invoiced)"
+msgstr "Total des recettes facturées"
+
+#. DocType: Driver Payroll Run
+msgid "Total Trip Earnings"
+msgstr "Total des gains de mission"
+
+#. DocType: Trip Settlement
+msgid "Total Trip Expenses"
+msgstr "Total des dépenses de mission"
+
+#. Custom Field - label: Vehicle-transport_section
+msgid "Transport Details"
+msgstr "Détails du transport"
+
+#. DocType: Transport Location
+msgid "Transport Location"
+msgstr "Lieu de transport"
+
+#. DocType: Bilty
+msgid "Transport Order"
+msgstr "Commande de transport"
+
+msgid "Transport Order Status"
+msgstr "État des commandes de transport"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Transport Order {0} must be submitted first."
+msgstr "Validez d’abord la commande de transport {0}."
+
+#. DocType: Transport Rate Contract
+msgid "Transport Rate Contract"
+msgstr "Contrat tarifaire de transport"
+
+#. DocType: Transport Route
+msgid "Transport Route"
+msgstr "Itinéraire de transport"
+
+#. DocType: Bilty
+msgid "Transport Trip"
+msgstr "Mission de transport"
+
+#. DocType: Bilty
+msgid "Transport User"
+msgstr "Utilisateur transport"
+
+msgid "Transporter Performance"
+msgstr "Performance des transporteurs"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Transporter Purchase Invoice"
+msgstr "Facture fournisseur du transporteur"
+
+#. DocType: Fuel Authorization
+msgid "Trip"
+msgstr "Mission"
+
+#. DocType: Driver Advance Recovery
+msgid "Trip Advance"
+msgstr "Avance de mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Trip Advance {0} belongs to a different Trip ({1})."
+msgstr "L’avance {0} appartient à une autre mission ({1})."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Trip Advance {0} must be submitted first."
+msgstr "Validez d’abord l’avance de mission {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_advance/trip_advance.py
+msgid "Trip Advance {0} on Trip {1} to {2}"
+msgstr "Avance {0} pour la mission {1}, versée à {2}"
+
+#. DocType: Driver Payroll Detail
+msgid "Trip Amount"
+msgstr "Montant par mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/driver_earnings_register/driver_earnings_register.py
+msgid "Trip Amt"
+msgstr "Montant de mission"
+
+#. DocType: Driver Pay Rule
+msgid "Trip Component"
+msgstr "Rubrique de rémunération par mission"
+
+#. DocType: Driver Trip Earning
+msgid "Trip Date"
+msgstr "Date de la mission"
+
+#. DocType: Driver Pay Rule
+msgid "Trip Earnings"
+msgstr "Gains de mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "Trip earnings are now Additional Salary records. Run Payroll Entry for {0} – {1} to generate the Salary Slips that pay them."
+msgstr "Les gains de mission sont enregistrés comme compléments de salaire. Lancez la paie pour la période du {0} au {1} afin de générer les bulletins correspondants."
+
+#. DocType: Fuel Authorization
+msgid "Trip Expense"
+msgstr "Dépense de mission"
+
+msgid "Trip Expense Analysis"
+msgstr "Analyse des dépenses de mission"
+
+#. DocType: Trip Expense Type
+msgid "Trip Expense Type"
+msgstr "Type de dépense de mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Trip Expense {0} on Trip {1}: {2}"
+msgstr "Dépense {0} pour la mission {1} : {2}"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_expense/trip_expense.py
+msgid "Trip Expense {0} settled against Advance {1}"
+msgstr "Dépense de mission {0} imputée à l’avance {1}"
+
+#. DocType: Driver Trip Earning
+msgid "Trip Freight Revenue"
+msgstr "Recettes de fret de la mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Trip must be submitted before advancing status."
+msgstr "Validez la mission avant de faire évoluer son statut."
+
+msgid "Trip Profitability"
+msgstr "Rentabilité des missions"
+
+#. DocType: Transport Trip
+msgid "Trip Settlement"
+msgstr "Règlement de mission"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_settlement/trip_settlement.py
+msgid "Trip Settlement {0} already exists for Trip {1}."
+msgstr "Le règlement {0} existe déjà pour la mission {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Trip {0} has driver earnings already paid through a Driver Payroll Run. Cancel that run first."
+msgstr "Les gains du chauffeur pour la mission {0} ont déjà été payés. Annulez d’abord le traitement de paie concerné."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Trip {0} has no Driver."
+msgstr "Aucun chauffeur n’est renseigné pour la mission {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Trip {0} has no Transporter set."
+msgstr "Aucun transporteur n’est renseigné pour la mission {0}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Trip {0} is already linked to Purchase Invoice {1}."
+msgstr "La mission {0} est déjà liée à la facture fournisseur {1}."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Trip {0} is not submitted."
+msgstr "La mission {0} doit être validée."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/earnings.py
+msgid "Trip {0} is {1} — driver earnings are generated once it reaches {2}."
+msgstr "Le statut de la mission {0} est {1}. Les gains du chauffeur seront calculés au statut {2}."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/trip_settlement/trip_settlement.py
+msgid "Trip {0} must be delivered before settlement."
+msgstr "La mission {0} doit être livrée avant son règlement."
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Trip {0} must be submitted first."
+msgstr "Validez d’abord la mission {0}."
+
+#. DocType: Trip Settlement
+msgid "Trip-based driver earning for this Trip. Paid through the monthly Salary Slip, so it is NOT part of Total Cost above (which matches the Trip's GL entries)."
+msgstr "Gain du chauffeur pour cette mission, payé sur le bulletin mensuel. Il est exclu du coût total ci-dessus, qui correspond aux écritures de la mission dans le grand livre."
+
+#. DocType: Driver Payroll Detail
+msgid "Trips"
+msgstr "Missions"
+
+msgid "Unbilled Bilties"
+msgstr "Lettres de voiture non facturées"
+
+#. DocType: Bilty Charge
+msgid "Uncheck for internal/expense-only charges that should not appear on the customer invoice."
+msgstr "Décochez cette case pour les frais internes qui ne doivent pas figurer sur la facture client."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.py
+msgid "Unknown status {0}."
+msgstr "Statut inconnu : {0}."
+
+#. DocType: Transport Trip
+msgid "Unloading"
+msgstr "Déchargement"
+
+#. DocType: Transport Trip
+msgid "Unloading Time"
+msgstr "Heure de déchargement"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/unbilled_bilties/unbilled_bilties.js
+msgid "Up To Date"
+msgstr "À jour"
+
+#. apps/goods_transport/goods_transport/goods_transport/report/active_trips/active_trips.py
+msgid "Util %"
+msgstr "Taux de chargement (%)"
+
+#. DocType: Transport Rate Contract
+msgid "Valid To"
+msgstr "Fin de validité"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_rate_contract/transport_rate_contract.py
+msgid "Valid To cannot be earlier than Valid From."
+msgstr "La fin de validité doit être égale ou postérieure au début de validité."
+
+#. DocType: Fuel Authorization
+msgid "Valid Until"
+msgstr "Valide jusqu’au"
+
+#. DocType: Bilty
+msgid "Vehicle & Driver"
+msgstr "Véhicule et chauffeur"
+
+#. DocType: Transport Trip
+msgid "Vehicle Assigned"
+msgstr "Véhicule affecté"
+
+#. DocType: Transport Trip
+msgid "Vehicle Capacity (kg)"
+msgstr "Capacité du véhicule (kg)"
+
+#. DocType: Trip Settlement
+msgid "Vehicle Hire"
+msgstr "Location du véhicule"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Vehicle hire amount must be greater than zero."
+msgstr "Le montant de la location du véhicule doit être supérieur à zéro."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/transport_trip/transport_trip.js
+msgid "Vehicle Hire PI"
+msgstr "Facture fournisseur de location"
+
+#. DocType: Transport Trip
+msgid "Vehicle Hire Purchase Invoice"
+msgstr "Facture fournisseur de location de véhicule"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/operations.py
+msgid "Vehicle hire — {0} ({1} → {2})"
+msgstr "Location de véhicule — {0} ({1} → {2})"
+
+#. DocType: Bilty
+msgid "Vehicle License Plate"
+msgstr "Immatriculation du véhicule"
+
+#. DocType: Transport Trip
+msgid "Vehicle Owner"
+msgstr "Propriétaire du véhicule"
+
+msgid "Vehicle Trip History"
+msgstr "Historique des missions par véhicule"
+
+#. DocType: Driver Pay Rule
+msgid "Vehicle Type"
+msgstr "Type de véhicule"
+
+#. DocType: Vehicle Type
+msgid "Vehicle Type Name"
+msgstr "Nom du type de véhicule"
+
+#. Custom Field - label: Vehicle-volume_capacity
+msgid "Volume Capacity (m³)"
+msgstr "Capacité volumique (m³)"
+
+#. DocType: Transport Location
+msgid "Weighbridge"
+msgstr "Poste de pesage"
+
+#. apps/goods_transport/goods_transport/goods_transport/services/toll_routing.py
+msgid "You do not have permission to preview an itinerary."
+msgstr "Vous n’avez pas l’autorisation de prévisualiser un itinéraire."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.js
+msgid "{0} driver(s), {1} trip(s) loaded"
+msgstr "{0} chauffeur(s) et {1} mission(s) chargé(s)"
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_payroll_run/driver_payroll_run.py
+msgid "{0} has no Salary Structure Assignment. Assign a salary structure before running driver payroll."
+msgstr "Aucune structure salariale n’est attribuée à {0}. Attribuez-en une avant de lancer la paie des chauffeurs."
+
+#. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
+msgid "{0} is set, so its Salary Component is required."
+msgstr "Le champ {0} est renseigné. Sa rubrique de salaire est donc obligatoire."
+
+#. Workspace and dashboard
+msgid "Operations"
+msgstr "Exploitation"
+
+#. Workspace and dashboard
+msgid "Trip Finance"
+msgstr "Finances de mission"
+
+#. Workspace and dashboard
+msgid "Masters"
+msgstr "Référentiels"
+
+#. Workspace and dashboard
+msgid "Supplier (Transporters)"
+msgstr "Fournisseurs (transporteurs)"
+
+#. Workspace and dashboard
+msgid "New Bilty"
+msgstr "Nouvelle lettre de voiture"
+
+#. Workspace and dashboard
+msgid "New Transport Order"
+msgstr "Nouvelle commande de transport"
+
+#. Workspace and dashboard
+msgid "New Transport Trip"
+msgstr "Nouvelle mission de transport"
+
+#. Workspace and dashboard
+msgid "Unsettled Trips"
+msgstr "Missions non réglées"
+
+#. Workspace and dashboard
+msgid "MTD Trip Revenue"
+msgstr "Recettes des missions depuis le début du mois"
+
+#. Workspace and dashboard
+msgid "GT — Trip Revenue by Month"
+msgstr "Recettes des missions par mois"
+
+#. Workspace and dashboard
+msgid "<span class='h4'><b>Goods Transport</b></span>"
+msgstr "<span class='h4'><b>Transport de marchandises</b></span>"
+
+#. Workspace and dashboard
+msgid "<span class='h5'><b>Quick Create</b></span>"
+msgstr "<span class='h5'><b>Création rapide</b></span>"

@@ -1,0 +1,151 @@
+{
+ "doctype": "DocType",
+ "name": "Fuel Authorization",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "track_changes": 1,
+ "allow_rename": 0,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1
+  }
+ ],
+ "field_order": [
+  "reserve",
+  "company",
+  "trip",
+  "vehicle",
+  "driver",
+  "station",
+  "fuel_type",
+  "authorized_liters",
+  "valid_from",
+  "valid_until",
+  "status",
+  "delivered_liters",
+  "closed_at",
+  "closed_by",
+  "trip_expense"
+ ],
+ "fields": [
+  {
+   "fieldname": "reserve",
+   "fieldtype": "Link",
+   "label": "Reserve",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Fuel Contract Reserve"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "reqd": 1,
+   "options": "Company"
+  },
+  {
+   "fieldname": "trip",
+   "fieldtype": "Link",
+   "label": "Trip",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Transport Trip"
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "reqd": 1,
+   "options": "Vehicle"
+  },
+  {
+   "fieldname": "driver",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "reqd": 1,
+   "options": "Driver"
+  },
+  {
+   "fieldname": "station",
+   "fieldtype": "Link",
+   "label": "Station",
+   "reqd": 1,
+   "options": "Fuel Partner Station"
+  },
+  {
+   "fieldname": "fuel_type",
+   "fieldtype": "Select",
+   "label": "Fuel Type",
+   "reqd": 1,
+   "options": "Diesel\nEssence"
+  },
+  {
+   "fieldname": "authorized_liters",
+   "fieldtype": "Float",
+   "label": "Authorized Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Datetime",
+   "label": "Valid From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Datetime",
+   "label": "Valid Until",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Reserved\nConsumed\nCancelled\nExpired"
+  },
+  {
+   "fieldname": "delivered_liters",
+   "fieldtype": "Float",
+   "label": "Delivered Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_at",
+   "fieldtype": "Datetime",
+   "label": "Closed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_by",
+   "fieldtype": "Link",
+   "label": "Closed By",
+   "read_only": 1,
+   "options": "User"
+  },
+  {
+   "fieldname": "trip_expense",
+   "fieldtype": "Link",
+   "label": "Trip Expense",
+   "read_only": 1,
+   "options": "Trip Expense"
+  }
+ ]
+}

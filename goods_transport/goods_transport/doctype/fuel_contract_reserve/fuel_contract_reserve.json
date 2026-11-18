@@ -1,0 +1,135 @@
+{
+ "doctype": "DocType",
+ "name": "Fuel Contract Reserve",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "track_changes": 1,
+ "allow_rename": 0,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "create": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1,
+   "report": 1,
+   "create": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1
+  }
+ ],
+ "field_order": [
+  "contract_reference",
+  "company",
+  "station",
+  "fuel_type",
+  "valid_from",
+  "valid_until",
+  "remaining_liters",
+  "reserved_liters",
+  "available_liters",
+  "consumed_liters",
+  "price_currency",
+  "price_per_liter"
+ ],
+ "fields": [
+  {
+   "fieldname": "contract_reference",
+   "fieldtype": "Data",
+   "label": "Contract Reference",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Company"
+  },
+  {
+   "fieldname": "station",
+   "fieldtype": "Link",
+   "label": "Station",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Fuel Partner Station"
+  },
+  {
+   "fieldname": "fuel_type",
+   "fieldtype": "Select",
+   "label": "Fuel Type",
+   "reqd": 1,
+   "options": "Diesel\nEssence"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until"
+  },
+  {
+   "fieldname": "remaining_liters",
+   "fieldtype": "Float",
+   "label": "Remaining Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reserved_liters",
+   "fieldtype": "Float",
+   "label": "Reserved Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "available_liters",
+   "fieldtype": "Float",
+   "label": "Available Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "consumed_liters",
+   "fieldtype": "Float",
+   "label": "Consumed Liters",
+   "precision": "3",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "price_currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "label": "Devise du prix"
+  },
+  {
+   "fieldname": "price_per_liter",
+   "fieldtype": "Currency",
+   "options": "price_currency",
+   "precision": "6",
+   "non_negative": 1,
+   "label": "Prix contractuel par litre"
+  }
+ ],
+ "title_field": "contract_reference",
+ "show_title_field_in_link": 1,
+ "search_fields": "contract_reference"
+}

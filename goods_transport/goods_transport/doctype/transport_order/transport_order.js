@@ -8,6 +8,31 @@ frappe.ui.form.on("Transport Order", {
 		}));
 	},
 	refresh(frm) {
+		if (frappe.boot.goods_transport_route_preview && frm.doc.docstatus !== 2) {
+			frm.add_custom_button(__("Itinéraire et péages"), () => {
+				const dialog = new frappe.ui.Dialog({
+					title: __("Préparer l’itinéraire"),
+					fields: [
+						{ fieldname: "origin", label: __("Départ"), fieldtype: "Link",
+							options: "Transport Location", default: frm.doc.origin, reqd: 1 },
+						{ fieldname: "via", label: __("Étape"), fieldtype: "Link", options: "Transport Location" },
+						{ fieldname: "destination", label: __("Arrivée"), fieldtype: "Link",
+							options: "Transport Location", default: frm.doc.destination, reqd: 1 },
+					],
+					primary_action_label: __("Calculer"),
+					async primary_action(values) {
+						const { message } = await frappe.call({
+							method: "goods_transport.goods_transport.services.toll_routing.preview_route",
+							args: values, freeze: true,
+						});
+						await frappe.require("/assets/goods_transport/js/toll_map.js");
+						dialog.hide();
+						await goods_transport.toll_map.show(message);
+					},
+				});
+				dialog.show();
+			});
+		}
 		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled") {
 			frm.add_custom_button(
 				__("Transport Trip"),

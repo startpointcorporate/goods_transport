@@ -1,0 +1,110 @@
+{
+ "doctype": "DocType",
+ "name": "Fuel Partner Station",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "track_changes": 1,
+ "allow_rename": 0,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "create": 1,
+   "write": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1,
+   "report": 1,
+   "create": 1,
+   "write": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1
+  }
+ ],
+ "field_order": [
+  "company",
+  "station_name",
+  "supplier",
+  "brand",
+  "street_address",
+  "latitude",
+  "longitude",
+  "diesel",
+  "essence",
+  "station_user"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "options": "Company"
+  },
+  {
+   "fieldname": "station_name",
+   "fieldtype": "Data",
+   "label": "Station Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "reqd": 1,
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Data",
+   "label": "Brand"
+  },
+  {
+   "fieldname": "street_address",
+   "fieldtype": "Small Text",
+   "label": "Street Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "reqd": 1,
+   "precision": "7"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "reqd": 1,
+   "precision": "7"
+  },
+  {
+   "fieldname": "diesel",
+   "fieldtype": "Check",
+   "label": "Diesel"
+  },
+  {
+   "fieldname": "essence",
+   "fieldtype": "Check",
+   "label": "Essence"
+  },
+  {
+   "fieldname": "station_user",
+   "fieldtype": "Link",
+   "label": "Station User",
+   "reqd": 1,
+   "options": "User"
+  }
+ ],
+ "title_field": "station_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "station_name"
+}
