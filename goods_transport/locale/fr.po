@@ -374,8 +374,9 @@ msgid "Commission %"
 msgstr "Taux de commission (%)"
 
 #. DocType: Driver Pay Rule
+#, no-python-format
 msgid "Commission % of Trip Freight"
-msgstr "Commission % du fret de la mission"
+msgstr "Commission sur le fret de la mission (%)"
 
 #. DocType: Driver Payroll Detail
 msgid "Commission Amount"
