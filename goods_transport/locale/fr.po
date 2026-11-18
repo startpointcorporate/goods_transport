@@ -1812,3 +1812,51 @@ msgstr "Aucune structure salariale n’est attribuée à {0}. Attribuez-en une a
 #. apps/goods_transport/goods_transport/goods_transport/doctype/driver_pay_rule/driver_pay_rule.py
 msgid "{0} is set, so its Salary Component is required."
 msgstr "Le champ {0} est renseigné. Sa rubrique de salaire est donc obligatoire."
+
+#. Workspace and dashboard
+msgid "Operations"
+msgstr "Exploitation"
+
+#. Workspace and dashboard
+msgid "Trip Finance"
+msgstr "Finances de mission"
+
+#. Workspace and dashboard
+msgid "Masters"
+msgstr "Référentiels"
+
+#. Workspace and dashboard
+msgid "Supplier (Transporters)"
+msgstr "Fournisseurs (transporteurs)"
+
+#. Workspace and dashboard
+msgid "New Bilty"
+msgstr "Nouvelle lettre de voiture"
+
+#. Workspace and dashboard
+msgid "New Transport Order"
+msgstr "Nouvelle commande de transport"
+
+#. Workspace and dashboard
+msgid "New Transport Trip"
+msgstr "Nouvelle mission de transport"
+
+#. Workspace and dashboard
+msgid "Unsettled Trips"
+msgstr "Missions non réglées"
+
+#. Workspace and dashboard
+msgid "MTD Trip Revenue"
+msgstr "Recettes des missions depuis le début du mois"
+
+#. Workspace and dashboard
+msgid "GT — Trip Revenue by Month"
+msgstr "Recettes des missions par mois"
+
+#. Workspace and dashboard
+msgid "<span class='h4'><b>Goods Transport</b></span>"
+msgstr "<span class='h4'><b>Transport de marchandises</b></span>"
+
+#. Workspace and dashboard
+msgid "<span class='h5'><b>Quick Create</b></span>"
+msgstr "<span class='h5'><b>Création rapide</b></span>"
