@@ -8,6 +8,7 @@ which needs HRMS (Salary Component, Salary Structure) to be present.
 from goods_transport.setup.install_accounting_dimensions import install_transport_accounting_dimensions
 from goods_transport.setup.install_custom_fields import install_transport_custom_fields
 from goods_transport.setup.install_dashboard import install_transport_dashboard
+from goods_transport.setup.install_fleet_maintenance_fields import execute as install_fleet_maintenance_fields
 from goods_transport.setup.install_fuel_fields import execute as install_fuel_fields
 from goods_transport.setup.install_masters import install_transport_masters
 from goods_transport.setup.install_pay_rules import install_default_pay_rules
@@ -27,6 +28,7 @@ def after_install():
 	install_transport_masters()
 	install_transport_custom_fields()
 	install_fuel_fields()
+	install_fleet_maintenance_fields()
 	install_all_print_formats()
 	install_transport_accounting_dimensions()
 	install_transport_dashboard()

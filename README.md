@@ -612,3 +612,67 @@ Development is tracked in ~9 semantic commits on `develop`:
 ## License
 
 MIT.
+
+## Fleet Maintenance
+
+Open **Fleet Maintenance** in Desk to view vehicle availability, preventive
+deadlines, open breakdowns and immobilisations. Select a company and a period
+to see posted maintenance costs and verified kilometres. The cost columns
+require an accounting role. Use the vehicle filter for a single truck.
+
+1. Enter the starting mileage on **Vehicle**. Link an existing, submitted
+   ERPNext **Asset** only when the truck already has an accounting asset.
+2. Create a **Vehicle Maintenance Schedule** with a day interval, a kilometre
+   interval, or both. Set the warning thresholds per vehicle and task. A linked
+   ERPNext maintenance task is completed through its **Asset Maintenance Log**.
+   Use **Record Maintenance** for schedules without an asset.
+3. Record the departure and arrival odometers on the trip. Moving the trip to
+   **Arrived** or saving the readings after arrival verifies the distance and
+   updates the vehicle. A driver linked to an HRMS employee gets a **Vehicle
+   Log** automatically. The submitted trip preserves the readings for any driver.
+4. Use **Report Breakdown** on an active trip to open a dated immobilisation.
+   Confirmed trips may share a vehicle when their planned windows are disjoint.
+   A trip without a planned window reserves the vehicle until delivery.
+   Stock Managers and System Managers can release an immobilisation after
+   recording the resolution and completing any linked repair.
+5. On a repair with an asset, link the immobilisation on **Asset Repair** and
+   on its dedicated purchase invoices. On a repair without an asset, link the
+   immobilisation directly on the native material issue and dedicated invoice.
+   Attach the same immobilisation to a dedicated payment if its disbursement
+   should appear in the report. Keep shared or mixed expenses on separate
+   vouchers if they require distinct vehicle attribution.
+
+Fleet charges use the base-currency general ledger of submitted vouchers and
+exclude cancelled entries. Capitalised costs and cash payments have separate
+columns. Purchase of inventory is recognised as an operating maintenance
+cost when the inventory is consumed. Historic planned route distances are
+excluded from the maintenance cost per kilometre.
+
+### Reproduce the maintenance acceptance tests
+
+Run the application migration and tests on a disposable Frappe site with
+ERPNext, HRMS and Goods Transport installed. The fixtures contain a temporary
+test company and submit fictional stock and invoice documents.
+
+```sh
+bench --site fleet-maint.localhost migrate
+bench --site fleet-maint.localhost set-config allow_tests true
+bench --site fleet-maint.localhost run-tests --module goods_transport.goods_transport.tests.test_transport_recette
+node --test tests/*.test.cjs
+```
+
+Complete the isolated site's setup wizard and serve it locally or through a
+loopback tunnel. Run `tests/e2e/seed_fleet_maintenance.py` using the bench
+Python environment and redirect its JSON output into a local file. Install
+Playwright 1.62.1 and its Chromium browser in the test environment. Start an
+isolated X server with a 1920 × 1080 screen and make `xdotool`, `xwininfo` and
+`ffmpeg` available. Set `FLEET_TEST_PASSWORD` to the disposable site's
+administrator password and point `DISPLAY` at the isolated screen.
+
+```sh
+node tests/e2e/fleet_maintenance.mjs http://127.0.0.1:8000 /tmp/fleet-fixture.json /tmp/fleet-captures
+```
+
+The Desk run submits and changes real Frappe records. Recreate the fixture
+for every run. Captures include the full Chromium window and are written
+outside the application repository.
