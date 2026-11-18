@@ -1,0 +1,42 @@
+{
+ "doctype": "DocType",
+ "name": "Fleet Tyre Position",
+ "module": "Goods Transport",
+ "field_order": [
+  "vehicle",
+  "axle",
+  "label",
+  "active_tyre"
+ ],
+ "fields": [
+  {
+   "fieldname": "vehicle",
+   "label": "Vehicle",
+   "fieldtype": "Link",
+   "options": "Vehicle",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "axle",
+   "label": "Axle",
+   "fieldtype": "Int",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label",
+   "label": "Position",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "active_tyre",
+   "label": "Mounted Tyre",
+   "fieldtype": "Link",
+   "options": "Fleet Tyre"
+  }
+ ],
+ "permissions": [],
+ "allow_rename": 0,
+ "track_changes": 1
+}

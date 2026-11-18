@@ -57,6 +57,9 @@ def record_trip_readings(trip):
 	if vehicle.last_odometer is not None and start < vehicle.last_odometer:
 		frappe.throw(_("The departure odometer is below the last recorded vehicle reading."))
 
+	from goods_transport.goods_transport.services.fleet_tyres import validate_completed_reading
+
+	validate_completed_reading(trip.vehicle, end)
 	employee = frappe.db.get_value("Driver", trip.driver, "employee") if trip.driver else None
 	log_name = None
 	if employee:
@@ -86,15 +89,21 @@ def record_trip_readings(trip):
 
 
 def validate_vehicle_log_on_submit(log, method=None):
+	from goods_transport.goods_transport.services.fleet_tyres import validate_completed_reading
+
 	vehicle = lock_vehicle(log.license_plate)
 	if vehicle.last_odometer is not None and log.last_odometer < vehicle.last_odometer:
 		frappe.throw(_("The starting odometer is below the last recorded vehicle reading."))
+
+	validate_completed_reading(log.license_plate, log.odometer)
 
 
 def validate_vehicle_log_on_cancel(log, method=None):
 	vehicle = lock_vehicle(log.license_plate)
 	if frappe.db.exists("Transport Trip", {"odometer_vehicle_log": log.name}):
 		frappe.throw(_("Correct the odometer reading through its Transport Trip."))
+	if frappe.db.exists("Fleet Tyre Event", {"vehicle": log.license_plate, "operation": "Mount"}):
+		frappe.throw(_("Vehicle readings used for tyre mileage require an authorised correction."))
 	if vehicle.last_odometer != log.odometer:
 		frappe.throw(_("A newer odometer reading exists for this vehicle."))
 
@@ -106,7 +115,14 @@ def validate_vehicle(doc, method=None):
 	if doc.is_new():
 		return
 	before = doc.get_doc_before_save()
+	if before and doc.has_value_changed("company"):
+		lock_vehicle(doc.name)
+		if frappe.db.exists("Fleet Tyre Event", {"vehicle": doc.name}):
+			frappe.throw(_("A vehicle with tyre history cannot change company."))
 	if before and doc.has_value_changed("last_odometer"):
 		lock_vehicle(doc.name)
-		if frappe.db.exists("Transport Trip", {"vehicle": doc.name, "odometer_recorded_at": ["is", "set"]}):
+		if (
+			frappe.db.exists("Transport Trip", {"vehicle": doc.name, "odometer_recorded_at": ["is", "set"]})
+			or frappe.db.exists("Fleet Tyre Event", {"vehicle": doc.name, "operation": "Mount"})
+		):
 			frappe.throw(_("Use a recorded reading to update this vehicle's verified odometer."))

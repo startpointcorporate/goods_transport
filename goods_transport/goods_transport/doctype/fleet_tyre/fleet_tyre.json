@@ -1,0 +1,57 @@
+{
+ "doctype": "DocType",
+ "name": "Fleet Tyre",
+ "module": "Goods Transport",
+ "field_order": [
+  "company",
+  "reference",
+  "serial_no",
+  "manufacturer_serial",
+  "dimension",
+  "state"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "label": "Company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference",
+   "label": "Individual Reference",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "label": "ERPNext Serial Number",
+   "fieldtype": "Link",
+   "options": "Serial No",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "manufacturer_serial",
+   "label": "Manufacturer Serial Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "dimension",
+   "label": "Dimension",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "state",
+   "label": "State",
+   "fieldtype": "Select",
+   "options": "Available\nMounted\nRemoved\nRetired",
+   "reqd": 1
+  }
+ ],
+ "permissions": [],
+ "allow_rename": 0,
+ "track_changes": 1
+}

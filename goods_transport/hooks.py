@@ -21,6 +21,7 @@ after_install = "goods_transport.install.after_install"
 doctype_js = {
 	"Transport Trip": "public/js/transport_trip.js",
 	"Driver": "public/js/driver.js",
+	"Vehicle": "public/js/fleet_tyres.js",
 }
 
 # Trip lifecycle -> driver earnings + Transport-User sidebar cleanup
@@ -101,6 +102,15 @@ for voucher_type in ("Asset Repair", "Purchase Invoice", "Stock Entry", "Payment
 	doc_events.setdefault(voucher_type, {}).update({
 		"validate": "goods_transport.goods_transport.services.fleet_costs.validate_repair_voucher",
 	})
+
+doc_events["Serial and Batch Bundle"] = {
+	"before_submit": "goods_transport.goods_transport.services.fleet_tyres.protect_managed_stock",
+	"before_cancel": "goods_transport.goods_transport.services.fleet_tyres.protect_managed_stock",
+}
+
+doc_events["Stock Entry"]["before_cancel"] = (
+	"goods_transport.goods_transport.services.fleet_tyres.prevent_stock_cancellation"
+)
 
 # Includes in <head>
 # ------------------

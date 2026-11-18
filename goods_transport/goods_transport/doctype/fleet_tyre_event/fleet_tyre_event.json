@@ -1,0 +1,111 @@
+{
+ "doctype": "DocType",
+ "name": "Fleet Tyre Event",
+ "module": "Goods Transport",
+ "field_order": [
+  "tyre",
+  "vehicle",
+  "position",
+  "operation",
+  "recorded_at",
+  "odometer",
+  "distance",
+  "notes",
+  "next_date",
+  "next_odometer",
+  "stock_entry",
+  "inspection_type",
+  "interval_days",
+  "interval_km"
+ ],
+ "fields": [
+  {
+   "fieldname": "tyre",
+   "label": "Tyre",
+   "fieldtype": "Link",
+   "options": "Fleet Tyre",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "vehicle",
+   "label": "Vehicle",
+   "fieldtype": "Link",
+   "options": "Vehicle",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "position",
+   "label": "Position",
+   "fieldtype": "Link",
+   "options": "Fleet Tyre Position",
+   "reqd": 1
+  },
+  {
+   "fieldname": "operation",
+   "label": "Operation",
+   "fieldtype": "Select",
+   "options": "Mount\nRemove\nRetire\nInspection\nScrap",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recorded_at",
+   "label": "Performed At",
+   "fieldtype": "Datetime",
+   "reqd": 1
+  },
+  {
+   "fieldname": "odometer",
+   "label": "Actual Odometer (km)",
+   "fieldtype": "Int"
+  },
+  {
+   "fieldname": "distance",
+   "label": "Completed Mount Distance (km)",
+   "fieldtype": "Int"
+  },
+  {
+   "fieldname": "notes",
+   "label": "Notes",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "next_date",
+   "label": "Next Inspection Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "next_odometer",
+   "label": "Next Inspection at Tyre Mileage (km)",
+   "fieldtype": "Int"
+  },
+  {
+   "fieldname": "stock_entry",
+   "label": "Stock Entry",
+   "fieldtype": "Link",
+   "options": "Stock Entry"
+  },
+  {
+   "fieldname": "inspection_type",
+   "label": "Intervention Type",
+   "fieldtype": "Select",
+   "options": "Pressure Check\nVisual Inspection\nTread Inspection\nRepair\nPuncture\nReturn to Service"
+  },
+  {
+   "fieldname": "interval_days",
+   "label": "Inspection Interval (days)",
+   "fieldtype": "Int",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "interval_km",
+   "label": "Inspection Interval (km)",
+   "fieldtype": "Int",
+   "non_negative": 1
+  }
+ ],
+ "permissions": [],
+ "allow_rename": 0,
+ "track_changes": 1
+}
