@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.translate import get_user_lang
 from frappe.utils import add_days, getdate, today
 
 from goods_transport.goods_transport.services.fleet_odometer import lock_vehicle, reading
@@ -75,7 +76,12 @@ def refresh_schedule_alert(schedule, odometer=None):
 	todos = frappe.get_all("ToDo", filters={
 		"reference_type": schedule.doctype, "reference_name": schedule.name, "status": "Open",
 	}, fields=["name", "allocated_to", "description"])
-	description = _("Vehicle {0}: {1} ({2})").format(schedule.vehicle, schedule.operation, _(state)) if state else None
+	description = None
+	if state:
+		language = get_user_lang(schedule.responsible)
+		description = _("Vehicle {0}: {1} ({2})", lang=language).format(
+			schedule.vehicle, schedule.operation, _(state, lang=language, context="Fleet Maintenance"),
+		)
 	for todo in todos:
 		if todo.allocated_to == schedule.responsible and todo.description == description:
 			return

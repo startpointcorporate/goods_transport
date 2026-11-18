@@ -83,7 +83,7 @@ def execute(filters=None):
 				"external": price.get("External Service", 0), "charges": charges,
 				"investment": price.get("investment", 0), "cash_out": price.get("cash_out", 0),
 				"verified_km": km, "cost_per_km": charges / km if km else None,
-				"vehicle": vehicle.name, "last_odometer": vehicle.last_odometer, "status": _(status),
+				"vehicle": vehicle.name, "last_odometer": vehicle.last_odometer, "status": _(status, context="Fleet Maintenance"),
 				"upcoming": due["Upcoming"], "due": due["Due"], "overdue": due["Overdue"],
 				"open_breakdowns": sum(row.reason == "Breakdown" for row in current),
 				"stops": len(incidents[vehicle.name]),
@@ -92,16 +92,16 @@ def execute(filters=None):
 		counts = Counter(row["status"] for row in rows)
 		summary = [
 			{"label": _("Vehicles"), "value": len(rows), "indicator": "Blue"},
-			{"label": _("Available"), "value": counts[_("Available")], "indicator": "Green"},
+			{"label": _("Available", context="Fleet Maintenance"), "value": counts[_("Available", context="Fleet Maintenance")], "indicator": "Green"},
 			{"label": _("In Trip"), "value": counts[_("In Trip")], "indicator": "Blue"},
-			{"label": _("Unavailable"), "value": len(rows) - counts[_("Available")] - counts[_("In Trip")], "indicator": "Red"},
-			{"label": _("Upcoming"), "value": sum(row["upcoming"] for row in rows), "indicator": "Orange"},
-			{"label": _("Overdue"), "value": sum(row["overdue"] for row in rows), "indicator": "Red"},
+			{"label": _("Unavailable", context="Fleet Maintenance"), "value": len(rows) - counts[_("Available", context="Fleet Maintenance")] - counts[_("In Trip")], "indicator": "Red"},
+			{"label": _("Upcoming", context="Fleet Maintenance"), "value": sum(row["upcoming"] for row in rows), "indicator": "Orange"},
+			{"label": _("Overdue", context="Fleet Maintenance"), "value": sum(row["overdue"] for row in rows), "indicator": "Red"},
 		]
 	columns = [
 		{"fieldname": "vehicle", "label": _("Vehicle"), "fieldtype": "Link", "options": "Vehicle", "width": 170},
 		{"fieldname": "status", "label": _("Availability"), "fieldtype": "Data", "width": 170},
-		*({"fieldname": name, "label": _(label), "fieldtype": "Int", "width": 120} for name, label in (
+		*({"fieldname": name, "label": _(label, context="Fleet Maintenance"), "fieldtype": "Int", "width": 120} for name, label in (
 			("last_odometer", "Odometer (km)"), ("upcoming", "Upcoming"), ("due", "Due"),
 			("overdue", "Overdue"), ("open_breakdowns", "Open Breakdowns"), ("stops", "Immobilisations"),
 		)),
