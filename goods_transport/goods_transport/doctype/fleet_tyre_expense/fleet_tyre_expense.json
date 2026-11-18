@@ -1,0 +1,51 @@
+{
+ "doctype": "DocType",
+ "name": "Fleet Tyre Expense",
+ "module": "Goods Transport",
+ "field_order": [
+  "tyre",
+  "vehicle",
+  "invoice",
+  "invoice_item",
+  "category"
+ ],
+ "fields": [
+  {
+   "fieldname": "tyre",
+   "label": "Tyre",
+   "fieldtype": "Link",
+   "options": "Fleet Tyre",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle",
+   "label": "Vehicle",
+   "fieldtype": "Link",
+   "options": "Vehicle",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice",
+   "label": "Purchase Invoice",
+   "fieldtype": "Link",
+   "options": "Purchase Invoice",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_item",
+   "label": "Invoice Line ID",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "category",
+   "label": "Category",
+   "fieldtype": "Select",
+   "options": "Installation\nRepair\nMaintenance",
+   "reqd": 1
+  }
+ ],
+ "permissions": [],
+ "allow_rename": 0,
+ "track_changes": 1
+}
