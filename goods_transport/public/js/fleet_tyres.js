@@ -18,68 +18,71 @@ async function show_tyres(frm) {
 
 	function action(container, label, fn) {
 		return $("<button>", { type: "button", class: "btn btn-default btn-sm mr-2 mb-2" })
-			.text(__(label)).on("click", fn).appendTo(container);
+			.text(label).on("click", fn).appendTo(container);
 	}
 	function submit(title, fields, method, extra = {}) {
 		const form = new frappe.ui.Dialog({
-			title: __(title), fields, primary_action_label: __("Confirm"),
+			title, fields, primary_action_label: __("Confirm"),
 			async primary_action(values) {
 				await request(method, { ...extra, ...values });
 				form.hide();
 				dialog.hide();
 				await show_tyres(frm);
+				if (extra.operation === "Replace") {
+					frappe.show_alert({ message: __("The tyre replacement was recorded."), indicator: "green" });
+				}
 			},
 		});
 		form.show();
 	}
 	const input = (fieldname, label, fieldtype = "Data", options, reqd = 1, default_value) => ({
-		fieldname, label: __(label), fieldtype, options, reqd, default: default_value,
+		fieldname, label, fieldtype, options, reqd, default: default_value,
 	});
 
 	async function fit(position, operation) {
 		const fields = [
-			input("odometer", "Actual odometer (km)", "Int", undefined, 1, overview.odometer),
-			input("recorded_at", "Performed at", "Datetime", undefined, 1, overview.operation_time),
+			input("odometer", __("Actual odometer (km)"), "Int", undefined, 1, overview.odometer),
+			input("recorded_at", __("Performed at"), "Datetime", undefined, 1, overview.operation_time),
 		];
 		if (["Mount", "Replace"].includes(operation)) {
 			const available = await request("available_tyres");
-			fields.push(input("tyre", "Tyre", "Select", [
+			fields.push(input("tyre", __("Tyre"), "Select", [
 				{ value: "", label: "" },
 				...available.map(tyre => ({ value: tyre.name, label: tyre.reference })),
 			]));
 		}
 		if (["Mount", "Remove"].includes(operation)) {
-			fields.push(input("warehouse", "Destination warehouse", "Link", "Warehouse"));
+			fields.push(input("warehouse", __("Destination warehouse"), "Link", "Warehouse"));
 		}
 		if (operation === "Replace") {
-			fields.push(input("notes", "Replacement reason", "Small Text"));
-			fields.push(input("warehouse", "Retired tyre holding warehouse", "Link", "Warehouse", 0));
+			fields.push(input("notes", __("Replacement reason"), "Small Text"));
+			fields.push(input("warehouse", __("Retired tyre holding warehouse"), "Link", "Warehouse", 0));
 		}
 		if (operation === "Rotate") {
 			const empty = overview.positions.filter(slot => !slot.active_tyre);
-			fields.push(input("destination", "Destination position", "Select", [
+			fields.push(input("destination", __("Destination position"), "Select", [
 				{ value: "", label: "" },
-				...empty.map(slot => ({ value: slot.name, label: slot.axle + " · " + slot.label })),
+				...empty.map(slot => ({ value: slot.name, label: slot.axle + " · " + __(slot.label, null, "Fleet Tyre Position") })),
 			]));
 		}
-		submit(operation, fields, "fit", { position: position.name, operation });
+		submit(__(operation, null, "Fleet Tyre Event"), fields, "fit", { position: position.name, operation });
 	}
 
 	if (writable) {
-		action(body, "Add position", () => submit("Add position", [
-			input("axle", "Axle", "Int"),
-			input("label", "Position"),
+		action(body, __("Add position"), () => submit(__("Add position"), [
+			input("axle", __("Axle"), "Int"),
+			input("label", __("Position")),
 		], "add_position"));
-		action(body, "Register tyre", () => submit("Register tyre", [
-			input("reference", "Individual reference"),
-			input("serial_no", "ERPNext serial number", "Link", "Serial No"),
-			input("manufacturer_serial", "Manufacturer serial number", "Data", undefined, 0),
-			input("dimension", "Dimension"),
+		action(body, __("Register tyre"), () => submit(__("Register tyre"), [
+			input("reference", __("Individual reference")),
+			input("serial_no", __("ERPNext serial number"), "Link", "Serial No"),
+			input("manufacturer_serial", __("Manufacturer serial number"), "Data", undefined, 0),
+			input("dimension", __("Dimension")),
 		], "register"));
 	}
 
 	if (["Accounts Manager", "Accounts User", "System Manager"].some(role => frappe.user.has_role(role))) {
-		action(body, "Tyre costs", async () => {
+		action(body, __("Tyre costs"), async () => {
 			const costs = await request("costs");
 			const report = new frappe.ui.Dialog({ title: __("Tyre costs") });
 			const format_cost = value => value == null ? "—" :
@@ -95,14 +98,14 @@ async function show_tyres(frm) {
 				].join(" · ")).appendTo(report.body);
 			}
 			if (writable && costs.rows.length) {
-				action(report.body, "Allocate service invoice line", () => {
+				action(report.body, __("Allocate service invoice line"), () => {
 					const fields = [
-						input("tyre", "Tyre", "Select", costs.rows.map(row => ({
+						input("tyre", __("Tyre"), "Select", costs.rows.map(row => ({
 							value: row.tyre, label: row.reference,
 						}))),
-						input("invoice", "Purchase invoice", "Link", "Purchase Invoice"),
-						input("invoice_item", "Service invoice line", "Select", [""]),
-						input("category", "Cost category", "Select", ["Installation", "Repair", "Maintenance"]),
+						input("invoice", __("Purchase invoice"), "Link", "Purchase Invoice"),
+						input("invoice_item", __("Service invoice line"), "Select", [""]),
+						input("category", __("Cost category"), "Select", ["Installation", "Repair", "Maintenance"]),
 					];
 					const form = new frappe.ui.Dialog({
 						title: __("Allocate service invoice line"), fields,
@@ -143,32 +146,32 @@ async function show_tyres(frm) {
 		const row = $("<div>", { class: "mb-2" }).appendTo(axle);
 		const tyre = position.tyre;
 		const details = tyre
-			? [tyre.reference, __(tyre.state), position.distance + " km", position.installed_at]
+			? [tyre.reference, __(tyre.state, null, "Fleet Tyre"), __("Total Mileage: {0} km", [position.distance]), position.installed_at]
 			: [__("Empty")];
 		if (position.inspection_due) details.push(__("Inspection due"));
-		$("<p>", { class: "mb-1" }).text([position.label, ...details].join(" · ")).appendTo(row);
+		$("<p>", { class: "mb-1" }).text([__(position.label, null, "Fleet Tyre Position"), ...details].join(" · ")).appendTo(row);
 		if (tyre) {
 			$("<p>", { class: "text-muted small mb-1" }).text([
 				tyre.item?.brand, tyre.item?.item_name, tyre.dimension, tyre.serial_no,
 			].filter(Boolean).join(" · ")).appendTo(row);
 		}
 		if (tyre) {
-			action(row, "History", () => show_history(position.active_tyre, tyre.reference));
+			action(row, __("History"), () => show_history(position.active_tyre, tyre.reference));
 		}
 		if (writable && tyre) {
 			for (const operation of ["Replace", "Remove", "Rotate"]) {
-				action(row, operation, () => fit(position, operation));
+				action(row, __(operation, null, "Fleet Tyre Event"), () => fit(position, operation));
 			}
-			action(row, "Inspection", () => submit("Inspection", [
-				input("inspection_type", "Intervention type", "Select", [
+			action(row, __("Inspection"), () => submit(__("Inspection"), [
+				input("inspection_type", __("Intervention type"), "Select", [
 					"Visual Inspection", "Pressure Check", "Tread Inspection", "Repair", "Puncture",
 				]),
-				input("notes", "Observations", "Small Text"),
-				input("interval_days", "Inspection interval (days)", "Data", undefined, 0),
-				input("interval_km", "Inspection interval (km)", "Data", undefined, 0),
+				input("notes", __("Observations"), "Small Text"),
+				input("interval_days", __("Inspection interval (days)"), "Data", undefined, 0),
+				input("interval_km", __("Inspection interval (km)"), "Data", undefined, 0),
 			], "inspect", { position: position.name }));
 		} else if (writable) {
-			action(row, "Mount", () => fit(position, "Mount"));
+			action(row, __("Mount"), () => fit(position, "Mount"));
 		}
 	}
 	if (overview.historic.length) {
@@ -177,13 +180,13 @@ async function show_tyres(frm) {
 			action(body, tyre.reference, () => show_history(tyre.name, tyre.reference));
 			if (writable && tyre.state === "Removed") {
 				action(body, __("Inspect {0} for return to service", [tyre.reference]), () =>
-					submit("Return-to-service inspection", [
-						input("notes", "Observations", "Small Text"),
+					submit(__("Return-to-service inspection"), [
+						input("notes", __("Observations"), "Small Text"),
 					], "approve_removed", { tyre: tyre.name }));
 			}
 			if (writable && tyre.awaiting_disposal) {
-				action(body, __("Scrap {0}", [tyre.reference]), () => submit("Scrap tyre", [
-					input("notes", "Disposal reason", "Small Text"),
+				action(body, __("Scrap {0}", [tyre.reference]), () => submit(__("Scrap tyre"), [
+					input("notes", __("Disposal reason"), "Small Text"),
 				], "scrap", { tyre: tyre.name }));
 			}
 		}
@@ -194,7 +197,9 @@ async function show_tyres(frm) {
 		const history = new frappe.ui.Dialog({ title: reference });
 		for (const event of events) {
 			$("<p>").text([
-				__(event.operation), event.inspection_type, event.recorded_at, event.odometer + " km", event.notes,
+				__(event.operation, null, "Fleet Tyre Event"),
+				event.operation === "Inspection" && event.inspection_type && __(event.inspection_type),
+				event.recorded_at, event.odometer + " km", event.notes,
 			].filter(Boolean).join(" · ")).appendTo(history.body);
 		}
 		history.show();

@@ -1860,3 +1860,697 @@ msgstr "<span class='h4'><b>Transport de marchandises</b></span>"
 #. Workspace and dashboard
 msgid "<span class='h5'><b>Quick Create</b></span>"
 msgstr "<span class='h5'><b>Création rapide</b></span>"
+
+msgid "A fleet maintenance schedule already uses this asset task."
+msgstr "Cette tâche d’actif est déjà utilisée par un plan de maintenance de la flotte."
+
+msgid "A newer odometer reading exists for this vehicle."
+msgstr "Un relevé kilométrique plus récent existe pour ce véhicule."
+
+msgid "A permanently replaced tyre cannot be used again."
+msgstr "Ce pneu a été définitivement remplacé et ne peut plus être utilisé."
+
+msgid "A removed tyre requires a recorded return-to-service inspection."
+msgstr "Enregistrez une inspection de remise en service avant de remonter ce pneu."
+
+msgid "A vehicle with tyre history cannot change company."
+msgstr "La société d’un véhicule ayant un historique de pneumatiques ne peut pas être modifiée."
+
+msgid "Accounting access is required for tyre costs."
+msgstr "Des droits comptables sont nécessaires pour consulter les coûts des pneumatiques."
+
+msgid "Accounting access is required to view fleet maintenance costs."
+msgstr "Des droits comptables sont nécessaires pour consulter les coûts de maintenance de la flotte."
+
+msgid "Actual Odometer (km)"
+msgstr "Relevé kilométrique réel (km)"
+
+msgid "Actual odometer (km)"
+msgstr "Relevé kilométrique réel (km)"
+
+msgid "Add position"
+msgstr "Ajouter un emplacement"
+
+msgid "Alert Advance (days)"
+msgstr "Préavis d’alerte (jours)"
+
+msgid "Alert Advance (km)"
+msgstr "Préavis d’alerte (km)"
+
+msgid "All allocations on a maintenance payment must belong to the same immobilisation."
+msgstr "Toutes les affectations d’un paiement de maintenance doivent concerner la même immobilisation."
+
+msgid "Allocate service invoice line"
+msgstr "Affecter une ligne de facture de service"
+
+msgid "Arrival Odometer (km)"
+msgstr "Compteur à l’arrivée (km)"
+
+msgid "Asset Maintenance Task Row"
+msgstr "Ligne de tâche de maintenance de l’actif"
+
+msgid "Asset Maintenance must belong to the asset linked to the vehicle."
+msgstr "Le document de maintenance doit concerner l’actif lié au véhicule."
+
+msgid "Availability"
+msgstr "Disponibilité"
+
+msgctxt "Fleet Maintenance"
+msgid "Available"
+msgstr "Véhicule disponible"
+
+msgid "Axle"
+msgstr "Essieu"
+
+msgid "Axle {0}"
+msgstr "Essieu {0}"
+
+msgid "Block Assignment When Due"
+msgstr "Bloquer l’affectation à l’échéance"
+
+msgid "Blocked by Maintenance"
+msgstr "Immobilisé pour entretien"
+
+msgid "Capitalised"
+msgstr "Coûts immobilisés"
+
+msgid "Cash Paid"
+msgstr "Montants décaissés"
+
+msgid "Choose a different destination warehouse."
+msgstr "Choisissez un autre entrepôt de destination."
+
+msgid "Choose a different replacement tyre."
+msgstr "Choisissez un autre pneu de remplacement."
+
+msgid "Choose a mounted tyre and enter inspection observations."
+msgstr "Choisissez un pneu monté et saisissez les observations de l’inspection."
+
+msgid "Choose a position with a mounted tyre."
+msgstr "Choisissez un emplacement où un pneu est monté."
+
+msgid "Choose a removed tyre from this vehicle and record the inspection findings."
+msgstr "Choisissez un pneu démonté de ce véhicule et enregistrez les résultats de l’inspection."
+
+msgid "Choose a retired tyre awaiting disposal and enter the reason."
+msgstr "Choisissez un pneu définitivement remplacé en attente de mise au rebut et indiquez le motif."
+
+msgid "Choose a submitted purchase invoice from the vehicle company without a fleet immobilisation allocation."
+msgstr "Choisissez une facture d’achat validée de la société du véhicule qui n’est affectée à aucune immobilisation de la flotte."
+
+msgid "Choose a tyre operation."
+msgstr "Choisissez une opération sur un pneu."
+
+msgid "Choose a tyre that has been mounted on this vehicle."
+msgstr "Choisissez un pneu qui a été monté sur ce véhicule."
+
+msgid "Choose a tyre."
+msgstr "Choisissez un pneu."
+
+msgid "Choose a valid intervention type."
+msgstr "Choisissez un type d’intervention valide."
+
+msgid "Choose an ERPNext serial number held in stock by this company."
+msgstr "Choisissez un numéro de série ERPNext en stock dans cette société."
+
+msgid "Choose an available tyre and an empty position."
+msgstr "Choisissez un pneu disponible et un emplacement libre."
+
+msgid "Choose an unallocated service invoice line."
+msgstr "Choisissez une ligne de facture de service encore disponible."
+
+msgid "Choose another, empty position."
+msgstr "Choisissez un autre emplacement libre."
+
+msgid "Complete an active schedule with the date and work performed."
+msgstr "Renseignez la date et les travaux effectués pour enregistrer un entretien sur un plan actif."
+
+msgid "Complete and submit the linked repair before releasing the vehicle."
+msgstr "Terminez et validez la réparation liée avant de remettre le véhicule en service."
+
+msgid "Completed Mount Distance (km)"
+msgstr "Kilométrage des montages terminés (km)"
+
+msgid "Completed Work"
+msgstr "Travaux effectués"
+
+msgid "Correct the linked fleet maintenance completion before cancelling this log."
+msgstr "Corrigez la réalisation de maintenance liée avant d’annuler ce journal."
+
+msgid "Correct the odometer reading through its Transport Trip."
+msgstr "Corrigez le relevé kilométrique depuis la mission de transport correspondante."
+
+msgid "Correct the verified odometer entry before cancelling this Trip."
+msgstr "Corrigez le relevé kilométrique vérifié avant d’annuler cette mission."
+
+msgid "Cost category"
+msgstr "Catégorie de coût"
+
+msgid "Critical"
+msgstr "Critique"
+
+msgid "Departure Odometer (km)"
+msgstr "Compteur au départ (km)"
+
+msgid "Destination position"
+msgstr "Emplacement de destination"
+
+msgid "Destination warehouse"
+msgstr "Entrepôt de destination"
+
+msgid "Dimension"
+msgstr "Dimension"
+
+msgid "Disposal reason"
+msgstr "Motif de mise au rebut"
+
+msgctxt "Fleet Maintenance"
+msgid "Due"
+msgstr "Entretien à effectuer"
+
+msgid "Due Odometer (km)"
+msgstr "Échéance kilométrique (km)"
+
+msgid "ERPNext Serial Number"
+msgstr "Numéro de série ERPNext"
+
+msgid "ERPNext maintenance log {0}"
+msgstr "Journal de maintenance ERPNext {0}"
+
+msgid "ERPNext serial number"
+msgstr "Numéro de série ERPNext"
+
+msgid "Enter a completion reading supported by the vehicle odometer."
+msgstr "Saisissez un relevé de fin d’entretien compatible avec le compteur du véhicule."
+
+msgid "Enter a maintenance interval in days or kilometres."
+msgstr "Saisissez un intervalle d’entretien en jours ou en kilomètres."
+
+msgid "Enter a positive axle number and a position label."
+msgstr "Saisissez un numéro d’essieu positif et un libellé d’emplacement."
+
+msgid "Enter a reference and a dimension."
+msgstr "Saisissez une référence et une dimension."
+
+msgid "Enter an actual odometer at least as high as the last verified reading."
+msgstr "Saisissez un relevé réel au moins égal au dernier relevé vérifié."
+
+msgid "Enter an initial date for calendar maintenance."
+msgstr "Saisissez la date de référence du plan de maintenance."
+
+msgid "Enter an initial odometer reading for mileage maintenance."
+msgstr "Saisissez le relevé kilométrique de référence du plan de maintenance."
+
+msgid "Enter an odometer reading as a non-negative whole number of kilometres."
+msgstr "Saisissez un relevé kilométrique entier, supérieur ou égal à zéro."
+
+msgid "Enter both planned departure and planned return."
+msgstr "Renseignez le départ et le retour prévus."
+
+msgid "Enter the replacement reason."
+msgstr "Indiquez le motif du remplacement."
+
+msgid "External Service"
+msgstr "Prestation externe"
+
+msgid "Fleet Cost Category"
+msgstr "Catégorie de coût de maintenance"
+
+msgid "Fleet Maintenance"
+msgstr "Maintenance de la flotte"
+
+msgid "Fleet Tyre"
+msgstr "Pneu de la flotte"
+
+msgid "Fleet Tyre Event"
+msgstr "Opération sur un pneu"
+
+msgid "Fleet Tyre Expense"
+msgstr "Coût d’un pneu"
+
+msgid "Fleet Tyre Position"
+msgstr "Position du pneu"
+
+msgid "Fleet Tyres"
+msgstr "Pneumatiques de la flotte"
+
+msgid "Fleet Tyres records are retained for audit."
+msgstr "Les données de gestion des pneumatiques sont conservées pour assurer la traçabilité."
+
+msgid "Garage or Supplier"
+msgstr "Garage ou fournisseur"
+
+msgid "History"
+msgstr "Historique"
+
+msgid "Immobilisations"
+msgstr "Immobilisations"
+
+msgid "Immobilised hours"
+msgstr "Heures d’immobilisation"
+
+msgid "In Trip"
+msgstr "En mission"
+
+msgid "Individual Reference"
+msgstr "Référence du pneu"
+
+msgid "Individual reference"
+msgstr "Référence du pneu"
+
+msgid "Initial Date"
+msgstr "Date de référence"
+
+msgid "Initial Odometer (km)"
+msgstr "Compteur de référence (km)"
+
+msgid "Inspect {0} for return to service"
+msgstr "Inspecter {0} pour la remise en service"
+
+msgid "Inspection Interval (days)"
+msgstr "Intervalle d’inspection (jours)"
+
+msgid "Inspection Interval (km)"
+msgstr "Intervalle d’inspection (km)"
+
+msgid "Inspection due"
+msgstr "Inspection à effectuer"
+
+msgid "Inspection interval (days)"
+msgstr "Intervalle d’inspection (jours)"
+
+msgid "Inspection interval (km)"
+msgstr "Intervalle d’inspection (km)"
+
+msgid "Installation"
+msgstr "Montage"
+
+msgid "Interval (days)"
+msgstr "Intervalle (jours)"
+
+msgid "Interval (km)"
+msgstr "Intervalle (km)"
+
+msgid "Intervention Type"
+msgstr "Type d’intervention"
+
+msgid "Intervention type"
+msgstr "Type d’intervention"
+
+msgid "Invoice Line ID"
+msgstr "Identifiant de la ligne de facture"
+
+msgid "Labor"
+msgstr "Main-d’œuvre"
+
+msgid "Leave blank to use today’s date in the company system."
+msgstr "Laissez ce champ vide pour utiliser la date du jour dans le système."
+
+msgid "Link a submitted maintenance asset from the same company."
+msgstr "Associez un actif validé appartenant à la même société."
+
+msgid "Link the maintenance payment to its maintenance purchase invoices."
+msgstr "Associez le paiement de maintenance aux factures d’achat correspondantes."
+
+msgid "Maintenance Asset"
+msgstr "Actif suivi pour la maintenance"
+
+msgid "Maintenance Charges"
+msgstr "Coût de maintenance"
+
+msgid "Maintenance Cost per km"
+msgstr "Coût de maintenance par kilomètre"
+
+msgid "Manufacturer Serial Number"
+msgstr "Numéro de série du fabricant"
+
+msgid "Manufacturer serial number"
+msgstr "Numéro de série du fabricant"
+
+msgid "Mount"
+msgstr "Monter"
+
+msgid "Mounted"
+msgstr "Monté"
+
+msgid "Mounted Tyre"
+msgstr "Pneu monté"
+
+msgid "Mounting cannot precede the previous tyre operation."
+msgstr "La date du montage ne peut pas précéder la dernière opération sur ce pneu."
+
+msgid "Next Inspection Date"
+msgstr "Date de la prochaine inspection"
+
+msgid "Next Inspection at Tyre Mileage (km)"
+msgstr "Prochaine inspection au kilométrage du pneu (km)"
+
+msgid "Observations"
+msgstr "Observations"
+
+msgid "Odometer (km)"
+msgstr "Relevé kilométrique (km)"
+
+msgid "Odometer Recorded At"
+msgstr "Date et heure du relevé kilométrique"
+
+msgid "Odometer Recorded By"
+msgstr "Relevé kilométrique enregistré par"
+
+msgid "Odometer Vehicle Log"
+msgstr "Journal du véhicule associé au relevé"
+
+msgid "Odometer audit fields are maintained by the system."
+msgstr "Les champs de suivi des relevés kilométriques sont renseignés par le système."
+
+msgid "Only a fleet supervisor may release an immobilisation."
+msgstr "Seul un responsable de flotte peut remettre ce véhicule en service."
+
+msgid "Only material issues can be attributed to maintenance consumption."
+msgstr "Seules les sorties de stock peuvent être imputées à la consommation de maintenance."
+
+msgid "Open Breakdowns"
+msgstr "Pannes en cours"
+
+msgid "Out of Service"
+msgstr "Hors service"
+
+msgctxt "Fleet Maintenance"
+msgid "Overdue"
+msgstr "Entretien en retard"
+
+msgid "Parts"
+msgstr "Pièces détachées"
+
+msgid "Performed At"
+msgstr "Date et heure de l’opération"
+
+msgid "Performed at"
+msgstr "Date et heure de l’opération"
+
+msgid "Planned Departure"
+msgstr "Départ prévu"
+
+msgid "Planned Return"
+msgstr "Retour prévu"
+
+msgid "Position"
+msgstr "Emplacement"
+
+msgid "Pressure Check"
+msgstr "Contrôle de la pression"
+
+msgid "Provide both the Asset Maintenance document and its task row."
+msgstr "Renseignez le document de maintenance de l’actif et sa ligne de tâche."
+
+msgid "Puncture"
+msgstr "Crevaison"
+
+msgid "Purchase invoice"
+msgstr "Facture d’achat"
+
+msgid "Record Maintenance"
+msgstr "Enregistrer un entretien"
+
+msgid "Record the resolution before releasing the vehicle."
+msgstr "Renseignez la solution apportée avant de remettre le véhicule en service."
+
+msgid "Recorded By"
+msgstr "Enregistré par"
+
+msgid "Register tyre"
+msgstr "Enregistrer un pneu"
+
+msgid "Released At"
+msgstr "Date et heure de remise en service"
+
+msgid "Released By"
+msgstr "Remis en service par"
+
+msgid "Released immobilisations are retained as history."
+msgstr "Les immobilisations terminées restent dans l’historique."
+
+msgctxt "Fleet Tyre Event"
+msgid "Remove"
+msgstr "Démonter"
+
+msgctxt "Fleet Tyre"
+msgid "Removed"
+msgstr "Démonté"
+
+msgid "Replace"
+msgstr "Remplacer"
+
+msgid "Replacement reason"
+msgstr "Motif du remplacement"
+
+msgid "Report Breakdown"
+msgstr "Déclarer une panne"
+
+msgid "Retire"
+msgstr "Remplacement définitif"
+
+msgid "Retired"
+msgstr "Définitivement remplacé"
+
+msgid "Retired tyre holding warehouse"
+msgstr "Entrepôt de quarantaine du pneu remplacé"
+
+msgid "Return to Service"
+msgstr "Remise en service"
+
+msgid "Return-to-service inspection"
+msgstr "Inspection de remise en service"
+
+msgid "Rotate"
+msgstr "Permuter"
+
+msgctxt "Fleet Tyre Event"
+msgid "Scrap"
+msgstr "Mise au rebut"
+
+msgid "Scrap tyre"
+msgstr "Mettre le pneu au rebut"
+
+msgid "Scrap {0}"
+msgstr "Mettre {0} au rebut"
+
+msgid "Select a maintenance cost category."
+msgstr "Sélectionnez une catégorie de coût de maintenance."
+
+msgid "Select an Asset Repair linked to this immobilisation."
+msgstr "Sélectionnez une réparation d’actif liée à cette immobilisation."
+
+msgid "Service invoice line"
+msgstr "Ligne de facture de service"
+
+msgid "Severity"
+msgstr "Gravité"
+
+msgctxt "Vehicle Immobilisation"
+msgid "Start"
+msgstr "Début de l’immobilisation"
+
+msgid "Submit the associated ERPNext Asset Maintenance Log to complete this task."
+msgstr "Validez le journal de maintenance ERPNext correspondant pour terminer cette tâche."
+
+msgid "Tag this repair's purchase invoice with the same immobilisation."
+msgstr "Associez la facture d’achat de cette réparation à la même immobilisation."
+
+msgid "The arrival odometer must be greater than or equal to the departure odometer."
+msgstr "Le kilométrage d’arrivée ne peut pas être inférieur au kilométrage de départ."
+
+msgid "The closing odometer is below a recorded tyre operation."
+msgstr "Le relevé de fin de mission est inférieur au kilométrage d’une opération déjà enregistrée sur un pneu."
+
+msgid "The completion date is before the previous completion."
+msgstr "La date de réalisation précède celle du dernier entretien enregistré."
+
+msgid "The completion reading is below the previous maintenance baseline."
+msgstr "Le relevé de fin d’entretien est inférieur au relevé de référence précédent."
+
+msgid "The departure odometer is below the last recorded vehicle reading."
+msgstr "Le compteur au départ est inférieur au dernier relevé du véhicule."
+
+msgid "The immobilisation and vehicle must belong to the same company."
+msgstr "L’immobilisation et le véhicule doivent appartenir à la même société."
+
+msgid "The maintenance schedule and vehicle must belong to the same company."
+msgstr "Le plan de maintenance et le véhicule doivent appartenir à la même société."
+
+msgid "The maintenance voucher and immobilisation must belong to the same company."
+msgstr "La pièce de maintenance et l’immobilisation doivent appartenir à la même société."
+
+msgid "The maintenance voucher must reference the immobilisation's trip."
+msgstr "La pièce de maintenance doit faire référence à la mission liée à l’immobilisation."
+
+msgid "The operation cannot precede an existing tyre operation."
+msgstr "L’opération ne peut pas précéder une opération déjà enregistrée sur un pneu."
+
+msgid "The operation date cannot be in the future."
+msgstr "La date de l’opération ne peut pas être dans le futur."
+
+msgid "The planned return must be later than the planned departure."
+msgstr "Le retour prévu doit être postérieur au départ prévu."
+
+msgid "The position already has a mounted tyre."
+msgstr "Cet emplacement est déjà occupé."
+
+msgid "The position belongs to another vehicle."
+msgstr "Cet emplacement appartient à un autre véhicule."
+
+msgid "The position has no mounted tyre in this company."
+msgstr "Aucun pneu de cette société n’est monté à cet emplacement."
+
+msgid "The release time must follow the immobilisation start."
+msgstr "La remise en service doit être postérieure au début de l’immobilisation."
+
+msgid "The removal reading precedes mounting."
+msgstr "Le relevé au démontage est incompatible avec le relevé au montage."
+
+msgid "The repair must use the asset linked to the vehicle."
+msgstr "La réparation doit concerner l’actif lié au véhicule."
+
+msgid "The serial number is no longer in company stock."
+msgstr "Ce numéro de série n’est plus en stock dans la société."
+
+msgid "The starting odometer is below the last recorded vehicle reading."
+msgstr "Le compteur au départ est inférieur au dernier relevé du véhicule."
+
+msgid "The task must belong to the linked Asset Maintenance document."
+msgstr "La tâche doit appartenir au document de maintenance de l’actif associé."
+
+msgid "The trip must use the immobilised vehicle."
+msgstr "Le véhicule immobilisé doit être celui de la mission."
+
+msgid "The tyre belongs to another company."
+msgstr "Ce pneu appartient à une autre société."
+
+msgid "The tyre is unavailable for mounting."
+msgstr "Ce pneu ne peut pas être monté."
+
+msgid "The tyre replacement was recorded."
+msgstr "Le remplacement du pneu a été enregistré."
+
+msgid "The vehicle on a maintenance schedule cannot be changed."
+msgstr "Le véhicule d’un plan de maintenance ne peut pas être modifié."
+
+msgid "The vehicle, reason and start time cannot be changed after declaration."
+msgstr "Le véhicule, le motif et la date de début ne peuvent plus être modifiés après la déclaration."
+
+msgid "This stock entry belongs to the tyre operation history."
+msgstr "Ce mouvement de stock fait partie de l’historique des opérations sur les pneumatiques."
+
+msgid "Total Mileage: {0} km"
+msgstr "Kilométrage cumulé : {0} km"
+
+msgid "Tread Inspection"
+msgstr "Contrôle de la bande de roulement"
+
+msgid "Tyre"
+msgstr "Pneu"
+
+msgid "Tyre costs"
+msgstr "Coûts des pneumatiques"
+
+msgid "Tyre history"
+msgstr "Historique des pneumatiques"
+
+msgid "Tyres"
+msgstr "Pneumatiques"
+
+msgctxt "Fleet Maintenance"
+msgid "Unavailable"
+msgstr "Véhicule indisponible"
+
+msgid "Under Maintenance"
+msgstr "En maintenance"
+
+msgctxt "Fleet Maintenance"
+msgid "Upcoming"
+msgstr "Entretien à venir"
+
+msgid "Use Fleet Tyres to move a mounted tyre. Retired tyres cannot be moved."
+msgstr "Utilisez la gestion des pneumatiques pour déplacer un pneu monté. Un pneu définitivement remplacé ne peut plus être déplacé."
+
+msgid "Use a recorded reading to update this vehicle's verified odometer."
+msgstr "Utilisez un relevé enregistré pour actualiser le compteur vérifié de ce véhicule."
+
+msgid "Use the Fleet Tyres operations to change this record."
+msgstr "Utilisez les opérations de gestion des pneumatiques pour modifier cet enregistrement."
+
+msgid "Use the completion operation to record preventive work."
+msgstr "Utilisez l’action d’enregistrement d’un entretien pour consigner les travaux préventifs."
+
+msgid "Use the release operation to return this vehicle to service."
+msgstr "Utilisez l’action de remise en service pour rétablir la disponibilité de ce véhicule."
+
+msgid "Use the trip lifecycle to change a submitted assignment."
+msgstr "Utilisez les actions de la mission pour modifier une affectation déjà validée."
+
+msgid "Vehicle Immobilisation"
+msgstr "Immobilisation de véhicule"
+
+msgid "Vehicle Maintenance Completion"
+msgstr "Réalisation d’un entretien"
+
+msgid "Vehicle Maintenance Schedule"
+msgstr "Plan de maintenance"
+
+msgid "Vehicle readings used for tyre mileage require an authorised correction."
+msgstr "Seule une correction autorisée peut modifier un relevé utilisé pour le kilométrage des pneus."
+
+msgid "Vehicle tyre cost {0}"
+msgstr "Coût des pneumatiques du véhicule {0}"
+
+msgid "Vehicle {0} does not exist."
+msgstr "Le véhicule {0} n’existe pas."
+
+msgid "Vehicle {0} has blocking maintenance due ({1})."
+msgstr "Impossible d’affecter le véhicule {0}. Un entretien bloquant est arrivé à échéance ({1})."
+
+msgid "Vehicle {0} is already assigned to an active trip ({1})."
+msgstr "Le véhicule {0} est déjà affecté à une mission en cours ({1})."
+
+msgid "Vehicle {0} is immobilised ({1})."
+msgstr "Le véhicule {0} est immobilisé ({1})."
+
+msgid "Vehicle {0} is out of service."
+msgstr "Le véhicule {0} est hors service."
+
+msgid "Vehicle {0}: {1} ({2})"
+msgstr "Véhicule {0} – {1} ({2})"
+
+msgid "Vehicles"
+msgstr "Véhicules"
+
+msgid "Verified km"
+msgstr "Kilomètres vérifiés"
+
+msgid "Verified readings require an authorised correction."
+msgstr "Seule une correction autorisée peut modifier un relevé vérifié."
+
+msgid "Visual Inspection"
+msgstr "Inspection visuelle"
+
+msgid "Work Performed"
+msgstr "Travaux effectués"
+
+msgctxt "Fleet Tyre Position"
+msgid "Left"
+msgstr "Gauche"
+
+msgctxt "Fleet Tyre Position"
+msgid "Right"
+msgstr "Droite"
+
+msgctxt "Fleet Tyre Position"
+msgid "Inner"
+msgstr "Intérieur"
+
+msgctxt "Fleet Tyre Position"
+msgid "Outer"
+msgstr "Extérieur"
+
+msgid "This tyre is already mounted on a vehicle."
+msgstr "Ce pneu est déjà monté sur un véhicule."

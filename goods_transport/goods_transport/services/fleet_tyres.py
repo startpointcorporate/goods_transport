@@ -213,6 +213,13 @@ def fit(vehicle, position, odometer, operation, tyre=None, destination=None, not
 
 def mount_candidate(tyre, position, current, odometer, recorded_at, warehouse):
 	if tyre.company != current.company or tyre.state not in ("Available", "Removed") or position.active_tyre:
+		if tyre.company == current.company:
+			if tyre.state == "Retired":
+				frappe.throw(_("A permanently replaced tyre cannot be used again."))
+			if tyre.state == "Mounted":
+				frappe.throw(_("This tyre is already mounted on a vehicle."))
+			if position.active_tyre:
+				frappe.throw(_("The position already has a mounted tyre."))
 		frappe.throw(_("Choose an available tyre and an empty position."))
 	if tyre.state == "Removed":
 		removed = latest_event({"tyre": tyre.name}, ("Remove",))
