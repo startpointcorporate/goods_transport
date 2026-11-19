@@ -134,7 +134,8 @@ doc_events["Stock Entry"]["before_cancel"] = (
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/goods_transport/css/goods_transport.css"
+# Shared bench asset. The Desk theme is also used on sites without konektag_360 installed.
+app_include_css = ["/assets/konektag_360/css/konektag_theme.css"]
 # app_include_js = "/assets/goods_transport/js/goods_transport.js"
 
 # include js, css files in header of web template
