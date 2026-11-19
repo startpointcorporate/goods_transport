@@ -9,6 +9,12 @@ ROUTER = Path("router/index.js")
 HOME = Path("views/Home.vue")
 EDITS = (
 	(
+		Path("../../hrms/www/hrms.py"),
+		'"default_route": get_default_route(),',
+		'"default_route": get_default_route(),\n'
+		'\t\t\t"goods_transport_fleet_photos": frappe.conf.get("goods_transport_fleet_photos") or {},',
+	),
+	(
 		Path("main.js"),
 		'if (session?.isLoggedIn && !employeeResource?.data) {',
 		'if (!window.frappe?.boot?.fleet_offline && session?.isLoggedIn && !employeeResource?.data) {',
@@ -76,7 +82,7 @@ def integrate(hrms):
 
 	fleet = source / "fleet_driver"
 	fleet.mkdir(exist_ok=True)
-	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue"):
+	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js", "FleetPhotoPicker.vue", "FleetPrivateDocuments.vue"):
 		shutil.copyfile(EXTENSION / asset, fleet / asset)
 	for path, content in files.items():
 		path.write_text(content)

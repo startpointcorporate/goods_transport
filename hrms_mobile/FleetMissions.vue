@@ -58,6 +58,8 @@
 							<p>{{ authorization.authorized_liters }} L · {{ tripStatus(authorization.status) }}</p>
 							<p>{{ authorization.valid_until }}</p>
 						</div>
+						<FleetRoadDocuments :key="selected.name" :trip="selected" :french="french" :offline="offline" />
+						<FleetPrivateDocuments :key="selected.name + ':files'" :trip="selected" :french="french" :offline="offline" />
 						<FleetInspection v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 						<FleetOperations v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 					</article>
@@ -75,6 +77,8 @@ import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offl
 import { getFleetData } from "./fleetApi"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
+import FleetRoadDocuments from "./FleetRoadDocuments.vue"
+import FleetPrivateDocuments from "./FleetPrivateDocuments.vue"
 
 const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
 const offline = ref(offlineShell || !navigator.onLine)
@@ -147,10 +151,25 @@ async function refresh() {
 	}
 }
 
-function reconnect() {
-	// Fetch a fresh session bootstrap and CSRF token after a cold offline start.
-	if (offlineShell) window.location.reload()
-	else void refresh()
+async function reconnect() {
+	if (!offlineShell) {
+		await refresh()
+		return
+	}
+	// Rebuild the session only once requests can reach Frappe again.
+	for (let attempt = 0; attempt < 3 && navigator.onLine; attempt++) {
+		try {
+			await getFleetData("available")
+			window.location.reload()
+			return
+		} catch (error) {
+			if (!(error instanceof TypeError)) {
+				window.location.reload()
+				return
+			}
+			await new Promise(resolve => setTimeout(resolve, 350))
+		}
+	}
 }
 
 function storageChanged() {

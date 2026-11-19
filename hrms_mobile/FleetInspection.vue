@@ -48,11 +48,9 @@
 						<img :src="photoUrl(photo)" :alt="text.photo" class="h-20 w-24 rounded object-cover" />
 						<button v-if="!inspection.submitted" class="underline" type="button" @click="remove(photo)">{{ text.remove }}</button>
 					</div>
-					<label v-if="!inspection.submitted" class="flex flex-col gap-1">
-						{{ text.photo }} ({{ text.minimum }} {{ control.min_photos }})
-						<input type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
-							@change="upload($event, control.code)" />
-					</label>
+					<FleetPhotoPicker v-if="!inspection.submitted" :key="inspection.name + ':' + control.code"
+						:french="french" :label="`${text.photo} (${text.minimum} ${control.min_photos})`"
+						:send="file => upload(file, control.code)" />
 				</div>
 				<label class="flex flex-col gap-1">
 					{{ text.observations }}
@@ -68,6 +66,7 @@
 
 <script setup>
 import { ref } from "vue"
+import FleetPhotoPicker from "./FleetPhotoPicker.vue"
 import { fleetUrl, postFleetData } from "./fleetApi"
 
 const props = defineProps({ trip: { type: String, required: true }, french: Boolean })
@@ -126,17 +125,17 @@ const validate = () => perform(async () => display(await postFleetData("validate
 	results: results.value, observations: observations.value,
 })))
 
-async function upload(event, control) {
-	const file = event.target.files[0]
-	event.target.value = ""
-	if (!file) return
-	await perform(async () => {
-		const body = new FormData()
-		body.append("file", file)
-		body.append("inspection", inspection.value.name)
-		body.append("control", control)
+async function upload(file, control) {
+	const body = new FormData()
+	body.append("file", file)
+	body.append("inspection", inspection.value.name)
+	body.append("control", control)
+	busy.value = true
+	try {
 		inspection.value.photos.push(await postFleetData("upload_photo", body))
-	})
+	} finally {
+		busy.value = false
+	}
 }
 
 const remove = photo => perform(async () => {

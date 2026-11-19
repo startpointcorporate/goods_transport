@@ -63,3 +63,23 @@ class TestFleetDriver(TestCase):
 		self.assertEqual(get_all.call_args.kwargs["filters"], {
 			"trip": "TRIP-1", "driver": "D-1", "company": "Site", "vehicle": "TRUCK-1",
 		})
+
+	def test_tolls_projection_never_reads_or_returns_rates(self):
+		trip = frappe._dict(route="RN1", trip_date="2026-11-19", fuel_plan_inputs=None)
+		locations = [frappe._dict(latitude=1, longitude=2), frappe._dict(latitude=1, longitude=3)]
+		station = frappe._dict(
+			name="STOP", location_name="Péage", address="Accès principal",
+			latitude=1, longitude=2, custom_toll_accuracy_m=100, custom_toll_precision="Précis",
+		)
+		with (
+			patch.object(frappe, "conf", frappe._dict(goods_transport_truck_osrm_url="http://routing")),
+			patch.object(frappe, "get_all", return_value=[station]) as stations,
+			patch("goods_transport.goods_transport.services.truck_plan.fetch_route",
+				return_value={"geometry": {"coordinates": [(2, 1), (3, 1)]}}),
+		):
+			tolls = fleet_driver._route_tolls(trip, {"locations": locations})
+		self.assertEqual(tolls, [{
+			"name": "Péage", "axis": "RN1", "address": "Accès principal",
+			"latitude": 1, "longitude": 2, "precision": "Précis",
+		}])
+		self.assertNotIn("custom_toll_rates", stations.call_args.kwargs["fields"])

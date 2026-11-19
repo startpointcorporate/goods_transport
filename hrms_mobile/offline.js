@@ -1,10 +1,12 @@
 import { sessionUser } from "@/data/session"
+import { clearRoadDocuments } from "./roadDocuments"
 
 const key = "goods-transport:fleet-snapshot:v1"
 const maximumAge = 12 * 60 * 60 * 1000
 const workerUrl = "/api/method/goods_transport.goods_transport.services.fleet_driver.service_worker"
 
 export function purgeFleetSnapshot() {
+	clearRoadDocuments()
 	try {
 		localStorage.removeItem(key)
 	} catch {

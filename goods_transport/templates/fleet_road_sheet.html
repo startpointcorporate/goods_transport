@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="{{ 'fr' if fr else 'en' }}">
+<meta charset="utf-8">
+<style>
+body { font: 12pt sans-serif; color: #19253a; }
+h1 { font-size: 22pt; } li { margin: 8px 0; }
+</style>
+<h1>{{ 'Feuille de route' if fr else 'Road sheet' }} — {{ trip.name | e }}</h1>
+<p>{{ trip.trip_date | e }} · {{ (trip.vehicle_license_plate or trip.vehicle) | e }}</p>
+<h2>{{ 'Étapes' if fr else 'Stops' }}</h2>
+<ol>
+{% for stop in trip.locations %}
+<li>{{ stop.location_name | e }}{% if stop.address %} — {{ stop.address | e }}{% endif %}
+{% if stop.latitude is not none and stop.longitude is not none %} ({{ stop.latitude | e }}, {{ stop.longitude | e }}){% endif %}</li>
+{% endfor %}
+</ol>
+{% if trip.fuel_stops %}
+<h2>{{ 'Arrêts carburant' if fr else 'Fuel stops' }}</h2>
+<ul>{% for stop in trip.fuel_stops %}<li>{{ stop.station | e }}</li>{% endfor %}</ul>
+{% endif %}
+<h2>{{ 'Péages du trajet' if fr else 'Route tolls' }}</h2>
+{% if tolls is none %}
+<p>{{ 'Plan de péages indisponible.' if fr else 'Toll plan unavailable.' }}</p>
+{% else %}
+<ol>{% for toll in tolls %}<li>{{ toll.name | e }}{% if toll.axis %} — {{ toll.axis | e }}{% endif %}{% if toll.address %} — {{ toll.address | e }}{% endif %}</li>{% endfor %}</ol>
+{% endif %}
+</html>

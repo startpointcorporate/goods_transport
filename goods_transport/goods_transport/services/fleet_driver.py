@@ -10,7 +10,7 @@ from frappe.utils import now_datetime
 from goods_transport.setup.install_fleet_driver import ROLE
 
 TRIP_FIELDS = (
-	"name", "trip_date", "status", "vehicle", "vehicle_license_plate", "origin",
+	"name", "modified", "trip_date", "status", "vehicle", "vehicle_license_plate", "origin",
 	"destination", "planned_departure_at", "planned_return_at", "departure_time",
 	"arrival_time", "actual_distance", "departure_odometer", "arrival_odometer",
 )
@@ -204,6 +204,7 @@ def _attach_evidence(doc, upload, field=None):
 	evidence.db_set("owner", "Administrator", update_modified=False)
 	if field:
 		doc.set(field, evidence.file_url)
+	return evidence
 
 
 @frappe.whitelist(methods=["POST"])
@@ -248,6 +249,41 @@ def confirm_delivery(trip: str, bilty: str, delivered_quantity, damaged_quantity
 
 
 @frappe.whitelist(methods=["POST"])
+def report_incident(trip: str, category: str, description: str):
+	from html import escape
+
+	doc = _assigned_trip(trip, lock=True)
+	categories = {
+		"minor_anomaly": _("Minor anomaly"),
+		"mechanical": _("Non-blocking mechanical incident"),
+		"material_damage": _("Material damage"),
+		"loading": _("Loading problem"),
+		"trip_difficulty": _("Difficulty during the trip"),
+	}
+	description = description.strip()
+	if category not in categories or not description or len(description) > 2000:
+		frappe.throw(_("Select a category and describe the incident in up to 2000 characters."))
+	if doc.status in ("Delivered", "Settled", "Closed", "Cancelled"):
+		frappe.throw(_("This trip is already finished."))
+	photos = [photo for photo in frappe.request.files.getlist("photo") if photo.filename]
+	if len(photos) > 4:
+		frappe.throw(_("Add no more than four photographs."))
+
+	evidence = [_attach_evidence(doc, photo) for photo in photos]
+	links = "".join(
+		f'<li><a href="{escape(file.file_url)}">{escape(_("Photograph"))} {index}</a></li>'
+		for index, file in enumerate(evidence, 1)
+	)
+	text = (
+		f"<p><strong>{escape(_('Non-blocking incident'))} — {escape(categories[category])}</strong></p>"
+		f"<p>{escape(_('Vehicle'))}: {escape(doc.vehicle or '')} · {escape(_('Driver'))}: {escape(doc.driver)}</p>"
+		f"<p>{escape(description).replace(chr(10), '<br>')}</p>"
+	)
+	comment = doc.add_comment(text=text + (f"<ul>{links}</ul>" if links else ""))
+	return comment.name
+
+
+@frappe.whitelist(methods=["POST"])
 def report_critical_incident(trip: str, category: str, description: str):
 	from .fleet_odometer import lock_vehicle
 
@@ -280,3 +316,111 @@ def present_fuel_authorizations(trip: str):
 		"trip": trip.name, "company": trip.company, "driver": trip.driver, "vehicle": trip.vehicle,
 		"status": "Reserved", "valid_from": ["<=", now], "valid_until": [">", now],
 	}, fields=["name", "station", "authorized_liters", "valid_until"])
+
+
+def _route_tolls(trip, projection):
+	from frappe.utils import getdate
+
+	from .road_sheet import INPUTS
+	from .truck_plan import fetch_route, plan_signature, planned_tolls
+
+	url = frappe.conf.get("goods_transport_truck_osrm_url")
+	points = [(row.longitude, row.latitude) for row in projection["locations"]]
+	if not url or len(points) < 2 or any(
+		lon is None or lat is None or (lon, lat) == (0, 0)
+		or not (-180 <= lon <= 180 and -90 <= lat <= 90) for lon, lat in points
+	):
+		return None
+	stored = json.loads(trip.fuel_plan_inputs or "{}")
+	forecast = stored.get("confirmed_forecast")
+	args = {key: stored.get(key) for key in INPUTS}
+	confirmed = bool(forecast and stored.get("signature") == plan_signature(trip, args, forecast))
+	try:
+		route = fetch_route(url, forecast["waypoints"] if confirmed else points, fuel_stop=confirmed)
+	except frappe.ValidationError:
+		return None
+	if not route or (confirmed and abs(route["distance"] - forecast["distance"]) > 1):
+		return None
+	stations = {
+		row.name: row for row in frappe.get_all("Transport Location",
+			filters={"location_type": "Péage", "is_active": 1},
+			fields=["name", "location_name", "address", "latitude", "longitude",
+				"custom_toll_accuracy_m", "custom_toll_precision"])
+	}
+	for station in stations.values():
+		station.custom_toll_rates = []
+	rows = planned_tolls(route["geometry"]["coordinates"], stations.values(), getdate(trip.trip_date), None)
+	return [{
+		"name": stations[row["name"]].location_name or row["name"],
+		"axis": trip.route, "address": stations[row["name"]].address,
+		"latitude": row["latitude"], "longitude": row["longitude"], "precision": row["precision"],
+	} for row in rows]
+
+
+@frappe.whitelist(methods=["GET"])
+def route_tolls(trip: str):
+	doc = _assigned_trip(trip)
+	return _route_tolls(doc, _project_trip(doc, {"driver": doc.driver, "company": doc.company}))
+
+
+@frappe.whitelist(methods=["GET"])
+def road_sheet_pdf(trip: str, language: str):
+	from .road_sheet import fleet_pdf
+
+	doc = _assigned_trip(trip)
+	if language not in ("fr", "en"):
+		frappe.throw(_("Select French or English."))
+	projection = _project_trip(doc, {"driver": doc.driver, "company": doc.company})
+	return fleet_pdf(projection, _route_tolls(doc, projection), language)
+
+
+def _approved_trip_files(trip):
+	"""Intersect explicit operational clearance with the assigned trip and private storage."""
+	approved = frappe.conf.get("goods_transport_fleet_documents") or {}
+	allowed = [name for name, category in approved.items() if category in ("transport", "mission")]
+	if not allowed:
+		return []
+	return [
+		row for row in frappe.get_all("File", filters={
+			"name": ["in", allowed], "is_private": 1, "is_folder": 0,
+			"attached_to_doctype": "Transport Trip", "attached_to_name": trip.name,
+		}, fields=["name", "file_name", "file_url", "modified", "file_size"], order_by="file_name asc")
+		if row.file_url and row.file_url.startswith("/private/files/")
+		and row.file_name.lower().endswith(".pdf") and 0 < (row.file_size or 0) <= 5 * 1024 * 1024
+	]
+
+
+@frappe.whitelist(methods=["GET"])
+def mission_files(trip: str):
+	doc = _assigned_trip(trip)
+	return [
+		{field: row[field] for field in ("name", "file_name", "modified", "file_size")}
+		for row in _approved_trip_files(doc)
+	]
+
+
+@frappe.whitelist(methods=["GET"])
+def mission_file(trip: str, file: str, modified: str):
+	from frappe.utils import get_datetime
+	from werkzeug.wrappers import Response
+
+	doc = _assigned_trip(trip)
+	candidate = next(
+		(row for row in _approved_trip_files(doc) if row.name == file
+			and get_datetime(row.modified) == get_datetime(modified)), None,
+	)
+	if candidate is None:
+		frappe.throw(_("This mission document is unavailable."), frappe.PermissionError)
+
+	document = frappe.get_doc("File", candidate.name)
+	if (document.is_private != 1 or document.attached_to_doctype != doc.doctype
+		or document.attached_to_name != doc.name or document.file_url != candidate.file_url
+		or document.modified != candidate.modified):
+		frappe.throw(_("This mission document is unavailable."), frappe.PermissionError)
+	content = document.get_content(encodings=())
+	if not isinstance(content, bytes) or not content.startswith(b"%PDF-") or len(content) > 5 * 1024 * 1024:
+		frappe.throw(_("This mission document is not a supported PDF."))
+	return Response(content, mimetype="application/pdf", headers={
+		"Cache-Control": "private, no-store", "Content-Disposition": "attachment",
+		"X-Content-Type-Options": "nosniff",
+	})
