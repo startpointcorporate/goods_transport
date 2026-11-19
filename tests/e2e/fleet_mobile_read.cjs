@@ -52,6 +52,7 @@ async function configure(context) {
 			delivery_documents: [{ name: "BILTY-TEST", total_quantity: 5, items: [{ item: "Colis", quantity: 5 }] }],
 			confirm_delivery: "POD-TEST",
 			report_critical_incident: "INCIDENT-TEST",
+			report_incident: "COMMENT-TEST",
 		}
 		return route.fulfill({ json: { message: messages[method] ?? [] } })
 	})
@@ -92,7 +93,16 @@ async function run() {
 			await page.getByLabel("Nom du réceptionnaire").fill("Test")
 			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
 			await page.getByText(/POD-TEST/).waitFor()
-			await page.getByRole("button", { name: "Signaler une panne critique" }).click()
+			await page.getByRole("button", { name: "Signaler un incident" }).click()
+			await page.getByLabel("Catégorie").selectOption("mechanical")
+			await page.getByLabel("Description").fill("Cache desserré")
+			assert.equal(await page.getByText("Cette déclaration immobilise le véhicule.").count(), 0)
+			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
+			await page.getByText(/COMMENT-TEST/).waitFor()
+
+			await page.getByRole("button", { name: "Signaler un incident" }).click()
+			await page.getByLabel("Catégorie").selectOption("Breakdown")
+			await page.getByText("Cette déclaration immobilise le véhicule.").waitFor()
 			await page.getByLabel("Description").fill("Panne de test")
 			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
 			await page.getByText(/INCIDENT-TEST/).waitFor()

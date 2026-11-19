@@ -204,6 +204,7 @@ def _attach_evidence(doc, upload, field=None):
 	evidence.db_set("owner", "Administrator", update_modified=False)
 	if field:
 		doc.set(field, evidence.file_url)
+	return evidence
 
 
 @frappe.whitelist(methods=["POST"])
@@ -245,6 +246,41 @@ def confirm_delivery(trip: str, bilty: str, delivered_quantity, damaged_quantity
 	document.flags.ignore_permissions = True
 	document.submit()
 	return document.name
+
+
+@frappe.whitelist(methods=["POST"])
+def report_incident(trip: str, category: str, description: str):
+	from html import escape
+
+	doc = _assigned_trip(trip, lock=True)
+	categories = {
+		"minor_anomaly": _("Minor anomaly"),
+		"mechanical": _("Non-blocking mechanical incident"),
+		"material_damage": _("Material damage"),
+		"loading": _("Loading problem"),
+		"trip_difficulty": _("Difficulty during the trip"),
+	}
+	description = description.strip()
+	if category not in categories or not description or len(description) > 2000:
+		frappe.throw(_("Select a category and describe the incident in up to 2000 characters."))
+	if doc.status in ("Delivered", "Settled", "Closed", "Cancelled"):
+		frappe.throw(_("This trip is already finished."))
+	photos = [photo for photo in frappe.request.files.getlist("photo") if photo.filename]
+	if len(photos) > 4:
+		frappe.throw(_("Add no more than four photographs."))
+
+	evidence = [_attach_evidence(doc, photo) for photo in photos]
+	links = "".join(
+		f'<li><a href="{escape(file.file_url)}">{escape(_("Photograph"))} {index}</a></li>'
+		for index, file in enumerate(evidence, 1)
+	)
+	text = (
+		f"<p><strong>{escape(_('Non-blocking incident'))} — {escape(categories[category])}</strong></p>"
+		f"<p>{escape(_('Vehicle'))}: {escape(doc.vehicle or '')} · {escape(_('Driver'))}: {escape(doc.driver)}</p>"
+		f"<p>{escape(description).replace(chr(10), '<br>')}</p>"
+	)
+	comment = doc.add_comment(text=text + (f"<ul>{links}</ul>" if links else ""))
+	return comment.name
 
 
 @frappe.whitelist(methods=["POST"])

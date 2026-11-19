@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from PIL import Image
+from werkzeug.datastructures import MultiDict
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
@@ -68,6 +69,25 @@ class TestFleetDriverSite(TestCase):
 		with self.assertRaises(frappe.PermissionError):
 			fleet_driver.inspection_photo(departure["name"], departure["photos"][0]["name"])
 
+		with self.assertRaises(frappe.PermissionError):
+			fleet_driver.report_incident(trip_a.name, "mechanical", "Wrong assignment")
+
+		frappe.set_user(users[0])
+		with self.assertRaises(frappe.ValidationError):
+			fleet_driver.report_incident(trip_a.name, "Brk", "Unsupported category")
+		with self._request("photo", "photo") as request, patch.object(frappe.local, "request", request, create=True):
+			note = fleet_driver.report_incident(trip_a.name, "mechanical", "Loose cover <check>")
+		comment = frappe.get_doc("Comment", note)
+		self.assertEqual((comment.reference_doctype, comment.reference_name), ("Transport Trip", trip_a.name))
+		self.assertEqual(comment.comment_email, users[0])
+		self.assertIsNotNone(comment.creation)
+		self.assertIn(trip_a.driver, comment.content)
+		self.assertIn(trip_a.vehicle, comment.content)
+		self.assertIn("&lt;check&gt;", comment.content)
+		self.assertEqual(frappe.db.count("File", {"attached_to_doctype": "Transport Trip",
+			"attached_to_name": trip_a.name, "is_private": 1}), 2)
+		self.assertFalse(frappe.db.exists("Vehicle Immobilisation", {"transport_trip": trip_a.name}))
+
 		frappe.set_user("Administrator")
 		advance_status(trip_a.name, "Arrived")
 		frappe.set_user(users[0])
@@ -92,12 +112,12 @@ class TestFleetDriverSite(TestCase):
 			advance_status(trip_b.name, "In Transit")
 
 	def _request(self, *file_fields):
-		data = {}
-		for field in file_fields:
+		data = MultiDict()
+		for index, field in enumerate(file_fields):
 			image = io.BytesIO()
-			Image.new("RGB", (32, 32), (32, 64, len(field))).save(image, "PNG")
+			Image.new("RGB", (32, 32), (32, 64 + index, len(field))).save(image, "PNG")
 			image.seek(0)
-			data[field] = (image, f"{field}.png")
+			data.add(field, (image, f"{field}-{index}.png"))
 		builder = EnvironBuilder(method="POST", data=data)
 		self.addCleanup(builder.close)
 		return Request(builder.get_environ())

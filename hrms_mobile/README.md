@@ -27,7 +27,7 @@ Se connecter à `/hrms` puis ouvrir **Mes missions** sur l’accueil. Sélection
 
 Pour installer la PWA, ouvrir HRMS dans Chrome sur Android et choisir **Installer l’application** si l’option est disponible. Sur iOS, ouvrir HRMS dans Safari puis choisir **Sur l’écran d’accueil** dans le menu de partage. Ouvrir une première fois **Mes missions** avec une connexion pour préparer la lecture hors ligne.
 
-En ligne, utiliser **États des lieux** pour saisir les contrôles et le kilométrage réel. L’exploitant conserve les changements de statut de la mission. À l’arrivée, **Preuve de livraison** permet de confirmer les quantités et de joindre des preuves. Utiliser **Signaler une panne critique** pour signaler un événement qui immobilise le véhicule.
+En ligne, utiliser **États des lieux** pour saisir les contrôles et le kilométrage réel. L’exploitant conserve les changements de statut de la mission. À l’arrivée, **Preuve de livraison** permet de confirmer les quantités et de joindre des preuves. Dans **Signaler un incident**, choisir une catégorie. Seules les catégories critiques utilisent le parcours d’immobilisation.
 
 ## Hors ligne
 
@@ -35,7 +35,7 @@ L’API de synchronisation renvoie une projection de lecture qui exclut les coû
 
 Les missions synchronisées sont conservées dans le stockage local de l’origine pour le compte courant, avec une durée maximale de 12 heures. Le changement d’identité, la déconnexion HRMS, l’expiration ou le refus serveur lors d’une actualisation invalident la copie. Afficher la date de synchronisation et actualiser quand la connexion revient. Les opérations d’écriture ne sont accessibles qu’en ligne.
 
-La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. L’accès aux autres pièces jointes reste à intégrer. Les incidents généraux non immobilisants restent à couvrir.
+La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. L’accès aux autres pièces jointes reste à intégrer. Les incidents non immobilisants sont enregistrés dans le fil de la mission avec le chauffeur, le véhicule, l’horodatage Frappe et jusqu’à quatre photos privées. La déclaration fonctionne en ligne.
 
 ## Recette
 

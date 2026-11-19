@@ -31,16 +31,21 @@
 			<label class="flex flex-col">{{ text.signature }} <input name="signature" type="file" accept="image/jpeg,image/png,image/webp" /></label>
 			<button type="submit" :disabled="busy || !bilty" class="rounded bg-gray-900 p-2 text-white">{{ text.confirm }}</button>
 		</form>
-		<form v-if="panel === 'incident'" class="flex flex-col gap-3" @submit.prevent="submit('report_critical_incident', $event)">
-			<p>{{ text.blocks }}</p>
+		<form v-if="panel === 'incident'" class="flex flex-col gap-3" @submit.prevent="submitIncident">
+			<p v-if="critical">{{ text.blocks }}</p>
 			<label>{{ text.category }}
-				<select name="category" class="rounded border p-2">
-					<option value="Breakdown">{{ text.breakdown }}</option>
-					<option value="Other">{{ text.other }}</option>
+				<select v-model="category" name="category" required class="rounded border p-2">
+					<option disabled value="">{{ text.choose }}</option>
+					<option v-for="key in categories" :key="key" :value="key">{{ text[key] }}</option>
 				</select>
 			</label>
-			<label class="flex flex-col">{{ text.description }} <textarea name="description" required class="rounded border p-2" /></label>
-			<label class="flex flex-col">{{ text.photo }} <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
+			<label class="flex flex-col">{{ text.description }}
+				<textarea name="description" required maxlength="2000" class="rounded border p-2" />
+			</label>
+			<label class="flex flex-col">{{ text.photo }}
+				<input :key="critical" name="photo" type="file" accept="image/jpeg,image/png,image/webp"
+					capture="environment" :multiple="!critical" />
+			</label>
 			<button type="submit" :disabled="busy" class="rounded bg-gray-900 p-2 text-white">{{ text.confirm }}</button>
 		</form>
 	</section>
@@ -52,23 +57,35 @@ import { getFleetData, postFleetData } from "./fleetApi"
 
 const props = defineProps({ trip: { type: String, required: true }, french: Boolean })
 const text = props.french ? {
-	fuel: "Présenter une autorisation", delivery: "Preuve de livraison", incident: "Signaler une panne critique",
+	fuel: "Présenter une autorisation", delivery: "Preuve de livraison", incident: "Signaler un incident",
 	error: "L’opération a échoué. Vérifiez la connexion et le statut de la mission.",
 	saved: "Enregistré", noCodes: "Aucune autorisation active.", consignment: "Lettre de voiture",
 	delivered: "Quantité livrée", damaged: "Quantité endommagée", receiver: "Nom du réceptionnaire",
 	notes: "Observations", description: "Description", photo: "Photographie", signature: "Photo de la signature",
 	confirm: "Confirmer", blocks: "Cette déclaration immobilise le véhicule.", category: "Catégorie",
-	breakdown: "Panne", other: "Autre problème critique",
+	choose: "Choisir une catégorie", Breakdown: "Panne critique", Other: "Autre problème critique",
+	minor_anomaly: "Anomalie mineure", mechanical: "Incident mécanique non bloquant",
+	material_damage: "Dommage matériel", loading: "Problème de chargement",
+	trip_difficulty: "Difficulté pendant la mission",
 } : {
-	fuel: "Present fuel authorization", delivery: "Proof of delivery", incident: "Report a critical incident",
+	fuel: "Present fuel authorization", delivery: "Proof of delivery", incident: "Report an incident",
 	error: "The operation failed. Check the connection and trip status.", saved: "Saved",
 	noCodes: "No active authorizations.", consignment: "Waybill", delivered: "Delivered quantity",
 	damaged: "Damaged quantity", receiver: "Receiver name", notes: "Notes", description: "Description",
 	photo: "Photograph", signature: "Signature photograph", confirm: "Confirm",
 	blocks: "Reporting this incident immobilises the vehicle.", category: "Category",
-	breakdown: "Breakdown", other: "Other critical issue",
+	choose: "Select a category", Breakdown: "Critical breakdown", Other: "Other critical issue",
+	minor_anomaly: "Minor anomaly", mechanical: "Non-blocking mechanical incident",
+	material_damage: "Material damage", loading: "Loading problem", trip_difficulty: "Difficulty during the trip",
 }
 const panel = ref("")
+const categories = ["minor_anomaly", "mechanical", "material_damage", "loading", "trip_difficulty", "Breakdown", "Other"]
+const category = ref("")
+const critical = computed(() => ["Breakdown", "Other"].includes(category.value))
+
+function submitIncident(event) {
+	submit(critical.value ? "report_critical_incident" : "report_incident", event)
+}
 const codes = ref([])
 const deliveries = ref([])
 const bilty = ref("")
@@ -105,8 +122,8 @@ const showDelivery = () => perform(async () => {
 
 function submit(method, event) {
 	const form = new FormData(event.currentTarget)
-	for (const [key, field] of form) {
-		if (field instanceof File && !field.size) form.delete(key)
+	for (const key of ["photo", "signature"]) {
+		if (form.getAll(key).every(field => field instanceof File && !field.size)) form.delete(key)
 	}
 	form.set("trip", props.trip)
 	return perform(async () => {
