@@ -42,6 +42,7 @@ async function configure(context) {
 		}
 		if (!pathname.startsWith("/api/method/")) return route.abort()
 		const method = pathname.split("/").pop().split(".").pop()
+		if (method === "route_tolls") return route.fulfill({ json: {} })
 		if (method === "upload_photo") {
 			uploadAttempt++
 			if (uploadAttempt === 1) return route.abort("internetdisconnected")
@@ -81,6 +82,8 @@ async function run() {
 			await page.waitForURL("**/hrms/fleet")
 			await page.getByRole("button", { name: /TRIP-TEST-001/ }).click()
 			await page.getByRole("heading", { name: "Feuille de route", exact: true }).waitFor()
+			await page.getByText("Aucun plan de péages disponible.", { exact: true }).waitFor()
+			await page.getByRole("button", { name: "Synchroniser le PDF" }).waitFor()
 			assert.match(await page.getByRole("link", { name: "Ouvrir la navigation" }).getAttribute("href"), /maps/)
 			await page.getByText("Station test", { exact: false }).waitFor()
 			if (screenshotDir) {
