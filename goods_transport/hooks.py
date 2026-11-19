@@ -25,7 +25,24 @@ doctype_js = {
 }
 
 # Trip lifecycle -> driver earnings + Transport-User sidebar cleanup
+inspection_service = "goods_transport.goods_transport.services.trip_inspection"
+extend_doctype_class = {"File": [inspection_service + ".InspectionFile"]}
+has_permission = {
+	"Trip Vehicle Inspection": inspection_service + ".has_permission",
+	"File": inspection_service + ".file_permission",
+}
+permission_query_conditions = {
+	"Trip Vehicle Inspection": inspection_service + ".permission_query",
+	"File": inspection_service + ".file_permission_query",
+}
+
 doc_events = {
+	"File": {
+		"before_insert": inspection_service + ".protect_file",
+		"before_validate": inspection_service + ".protect_file",
+		"validate": inspection_service + ".protect_file",
+		"on_trash": inspection_service + ".protect_file",
+	},
 	"Vehicle": {
 		"validate": "goods_transport.goods_transport.services.fleet_odometer.validate_vehicle",
 	},

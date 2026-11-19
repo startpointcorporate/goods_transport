@@ -31,6 +31,8 @@
   "column_break_r1",
   "planned_distance",
   "actual_distance",
+  "inspection_template",
+  "inspection_policy",
   "departure_odometer",
   "arrival_odometer",
   "odometer_recorded_at",
@@ -207,6 +209,8 @@
    "label": "Planned Distance (km)"
   },
   {"fieldname": "actual_distance", "fieldtype": "Float", "label": "Actual Distance (km)"},
+  {"fieldname": "inspection_template", "fieldtype": "Link", "label": "Trip Inspection Template", "options": "Trip Inspection Template", "no_copy": 1},
+  {"fieldname": "inspection_policy", "fieldtype": "JSON", "label": "Inspection Policy", "hidden": 1, "read_only": 1, "no_copy": 1},
   {"fieldname": "departure_odometer", "fieldtype": "Data", "label": "Departure Odometer (km)", "allow_on_submit": 1, "no_copy": 1},
   {"fieldname": "arrival_odometer", "fieldtype": "Data", "label": "Arrival Odometer (km)", "allow_on_submit": 1, "no_copy": 1},
   {"fieldname": "odometer_recorded_at", "fieldtype": "Datetime", "label": "Odometer Recorded At", "read_only": 1, "no_copy": 1},

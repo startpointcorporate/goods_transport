@@ -4,6 +4,14 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from goods_transport.goods_transport.services.fleet_availability import reservation_window, validate_assignment
+from goods_transport.goods_transport.services.trip_inspection import (
+	check_departure,
+	check_return,
+	latest,
+	policy,
+	protect_trip,
+	snapshot_policy,
+)
 from goods_transport.goods_transport.services.fleet_odometer import (
 	record_trip_readings,
 	validate_trip_readings,
@@ -36,6 +44,7 @@ class TransportTrip(Document):
 
 	def before_submit(self):
 		validate_assignment(self)
+		snapshot_policy(self)
 		if not self.vehicle_license_plate and self.vehicle:
 			plate = frappe.db.get_value("Vehicle", self.vehicle, "license_plate")
 			if plate:
@@ -47,11 +56,12 @@ class TransportTrip(Document):
 	def before_update_after_submit(self):
 		validate_trip_readings(self)
 		before = self.get_doc_before_save()
+		protect_trip(self, before)
 		if before and (before.vehicle != self.vehicle or before.status != self.status):
 			frappe.throw(_("Use the trip lifecycle to change a submitted assignment."))
 
 	def on_update_after_submit(self):
-		record_trip_readings(self)
+		record_uninspected_readings(self)
 
 	def on_cancel(self):
 		if self.odometer_recorded_at:
@@ -170,14 +180,20 @@ def advance_status(trip: str, to_status: str) -> str:
 		frappe.throw(_("Cannot move Trip status from {0} back to {1}.").format(doc.status, to_status))
 	if current_idx < TRIP_STATUS_ORDER.index("In Transit") <= target_idx:
 		validate_assignment(doc, departing=True)
+		check_departure(doc)
 	if to_status == "Settled":
 		frappe.throw(_("Submit a Trip Settlement to settle the Trip."))
 	if to_status == "Closed":
+		check_return(doc)
 		doc.validate_closure()
 	if to_status == "Delivered":
 		doc.validate_delivery()
 	doc.db_set("status", to_status)
-	record_trip_readings(doc)
+	record_uninspected_readings(doc)
 	if to_status == "Delivered":
 		doc.refresh_orders()
 	return to_status
+
+def record_uninspected_readings(trip):
+	if not policy(trip).get("required") and not latest(trip, "Departure", submitted=True):
+		record_trip_readings(trip)

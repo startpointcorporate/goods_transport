@@ -1,0 +1,55 @@
+{
+ "doctype": "DocType",
+ "name": "Trip Inspection Template",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "vehicle_type",
+  "require_inspections",
+  "controls"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle_type",
+   "fieldtype": "Link",
+   "label": "Vehicle Type",
+   "options": "Vehicle Type"
+  },
+  {
+   "fieldname": "require_inspections",
+   "fieldtype": "Check",
+   "label": "Require Inspections for New Trips"
+  },
+  {
+   "fieldname": "controls",
+   "fieldtype": "Table",
+   "label": "Inspection Controls",
+   "options": "Trip Inspection Control",
+   "reqd": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "autoname": "Prompt",
+ "track_changes": 1
+}
