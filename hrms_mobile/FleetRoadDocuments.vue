@@ -132,7 +132,7 @@ async function loadTolls() {
 			const value = await getFleetData("route_tolls", { trip: trip.name })
 			if (request !== tollRequest || !current(user, trip)) return
 			const expires = expiry(user, trip)
-			if (value !== null) {
+			if (Array.isArray(value)) {
 				record = { value, savedAt: Date.now() }
 				if (expires) await saveRoadDocument(user, trip, "tolls", value, expires).catch(() => {})
 			}
