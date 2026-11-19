@@ -59,6 +59,7 @@
 							<p>{{ authorization.valid_until }}</p>
 						</div>
 						<FleetRoadDocuments :key="selected.name" :trip="selected" :french="french" :offline="offline" />
+						<FleetPrivateDocuments :key="selected.name + ':files'" :trip="selected" :french="french" :offline="offline" />
 						<FleetInspection v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 						<FleetOperations v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 					</article>
@@ -77,6 +78,7 @@ import { getFleetData } from "./fleetApi"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
 import FleetRoadDocuments from "./FleetRoadDocuments.vue"
+import FleetPrivateDocuments from "./FleetPrivateDocuments.vue"
 
 const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
 const offline = ref(offlineShell || !navigator.onLine)

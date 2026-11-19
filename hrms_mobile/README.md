@@ -35,7 +35,7 @@ L’API de synchronisation renvoie une projection de lecture qui exclut les coû
 
 Les missions synchronisées sont conservées dans le stockage local de l’origine pour le compte courant, avec une durée maximale de 12 heures. Le changement d’identité, la déconnexion HRMS, l’expiration ou le refus serveur lors d’une actualisation invalident la copie. Afficher la date de synchronisation et actualiser quand la connexion revient. Les opérations d’écriture ne sont accessibles qu’en ligne.
 
-La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. L’accès aux autres pièces jointes reste à intégrer. Les incidents non immobilisants sont enregistrés dans le fil de la mission avec le chauffeur, le véhicule, l’horodatage Frappe et jusqu’à quatre photos privées. La déclaration fonctionne en ligne.
+La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. Les autres pièces jointes doivent être explicitement autorisées. Les incidents non immobilisants sont enregistrés dans le fil de la mission avec le chauffeur, le véhicule, l’horodatage Frappe et jusqu’à quatre photos privées. La déclaration fonctionne en ligne.
 
 ## Recette
 
@@ -53,4 +53,10 @@ Dans le détail d’une mission, sélectionner la langue puis **Synchroniser le 
 
 Les péages proviennent du calcul existant de correspondance avec la géométrie poids lourds. Le document et l’API ne chargent aucun tarif. Un plan confirmé utilise ses points enregistrés. Si le graphe a changé ou si les coordonnées sont absentes, l’interface indique que le plan est indisponible.
 
-Cette tranche ne publie aucune pièce jointe générique. Il reste à définir quels documents privés d’une mission sont destinés au chauffeur et comment cette autorisation sera renseignée dans Goods Transport.
+Les pièces jointes génériques restent dans le Desk. Consulter les règles d’autorisation ci-dessous.
+
+### Photos et pièces jointes privées
+
+Les photos JPEG, PNG et WebP sont prévisualisées avec la taille à envoyer avant acceptation. Le téléphone applique l’orientation décodée, puis conserve l’original si l’optimisation échoue ou augmente la taille. Les valeurs par défaut sont 2 000 pixels sur le grand côté et une qualité JPEG de 0,88. Configurer le site avec `goods_transport_fleet_photos`, par exemple `{"long_edge": 2000, "jpeg_quality": 0.88}`. Le serveur garde sa validation et sa limite de 12 Mio. Les aperçus et fichiers en attente sont conservés en mémoire pendant le formulaire.
+
+Pour autoriser un PDF opérationnel de transport, un administrateur ajoute le nom du document Frappe **File** à `goods_transport_fleet_documents`, par exemple `{"nom-du-file": "transport"}`. Les seules catégories acceptées sont `transport` et `mission`. Cette classification doit être réservée aux pièces opérationnelles. Chaque fichier doit être un PDF privé d’au plus 5 Mio, stocké localement et attaché directement à la mission concernée. L’API vérifie l’affectation, l’autorisation explicite du fichier, son rattachement et sa version à chaque téléchargement. Elle ne délivre pas de lien direct. Les PDF hors ligne suivent la limite de 12 heures du lot et la liste en ligne écarte les versions qui ont changé ou ont été retirées.

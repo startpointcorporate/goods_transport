@@ -27,8 +27,8 @@
 			<label>{{ text.damaged }} <input name="damaged_quantity" required type="number" value="0" min="0" step="any" class="rounded border p-2" /></label>
 			<label>{{ text.receiver }} <input name="receiver_name" required class="rounded border p-2" /></label>
 			<label class="flex flex-col">{{ text.notes }} <textarea name="remarks" class="rounded border p-2" /></label>
-			<label class="flex flex-col">{{ text.photo }} <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
-			<label class="flex flex-col">{{ text.signature }} <input name="signature" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+			<FleetPhotoPicker :label="text.photo" :french="french" @accepted="photos = $event" />
+			<FleetPhotoPicker :label="text.signature" :french="french" @accepted="signatures = $event" />
 			<button type="submit" :disabled="busy || !bilty" class="rounded bg-gray-900 p-2 text-white">{{ text.confirm }}</button>
 		</form>
 		<form v-if="panel === 'incident'" class="flex flex-col gap-3" @submit.prevent="submitIncident">
@@ -42,17 +42,16 @@
 			<label class="flex flex-col">{{ text.description }}
 				<textarea name="description" required maxlength="2000" class="rounded border p-2" />
 			</label>
-			<label class="flex flex-col">{{ text.photo }}
-				<input :key="critical" name="photo" type="file" accept="image/jpeg,image/png,image/webp"
-					capture="environment" :multiple="!critical" />
-			</label>
+			<FleetPhotoPicker :key="critical" :label="text.photo" :french="french"
+				:maximum="critical ? 1 : 4" @accepted="photos = $event" />
 			<button type="submit" :disabled="busy" class="rounded bg-gray-900 p-2 text-white">{{ text.confirm }}</button>
 		</form>
 	</section>
 </template>
 
 <script setup>
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
+import FleetPhotoPicker from "./FleetPhotoPicker.vue"
 import { getFleetData, postFleetData } from "./fleetApi"
 
 const props = defineProps({ trip: { type: String, required: true }, french: Boolean })
@@ -82,6 +81,10 @@ const panel = ref("")
 const categories = ["minor_anomaly", "mechanical", "material_damage", "loading", "trip_difficulty", "Breakdown", "Other"]
 const category = ref("")
 const critical = computed(() => ["Breakdown", "Other"].includes(category.value))
+const photos = ref([])
+const signatures = ref([])
+watch(panel, () => { photos.value = []; signatures.value = [] })
+watch(critical, () => { photos.value = [] })
 
 function submitIncident(event) {
 	submit(critical.value ? "report_critical_incident" : "report_incident", event)
@@ -122,9 +125,8 @@ const showDelivery = () => perform(async () => {
 
 function submit(method, event) {
 	const form = new FormData(event.currentTarget)
-	for (const key of ["photo", "signature"]) {
-		if (form.getAll(key).every(field => field instanceof File && !field.size)) form.delete(key)
-	}
+	for (const file of photos.value) form.append("photo", file)
+	if (panel.value === "delivery" && signatures.value[0]) form.append("signature", signatures.value[0])
 	form.set("trip", props.trip)
 	return perform(async () => {
 		saved.value = await postFleetData(method, form)

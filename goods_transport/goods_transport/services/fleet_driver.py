@@ -372,3 +372,55 @@ def road_sheet_pdf(trip: str, language: str):
 		frappe.throw(_("Select French or English."))
 	projection = _project_trip(doc, {"driver": doc.driver, "company": doc.company})
 	return fleet_pdf(projection, _route_tolls(doc, projection), language)
+
+
+def _approved_trip_files(trip):
+	"""Intersect explicit operational clearance with the assigned trip and private storage."""
+	approved = frappe.conf.get("goods_transport_fleet_documents") or {}
+	allowed = [name for name, category in approved.items() if category in ("transport", "mission")]
+	if not allowed:
+		return []
+	return [
+		row for row in frappe.get_all("File", filters={
+			"name": ["in", allowed], "is_private": 1, "is_folder": 0,
+			"attached_to_doctype": "Transport Trip", "attached_to_name": trip.name,
+		}, fields=["name", "file_name", "file_url", "modified", "file_size"], order_by="file_name asc")
+		if row.file_url and row.file_url.startswith("/private/files/")
+		and row.file_name.lower().endswith(".pdf") and 0 < (row.file_size or 0) <= 5 * 1024 * 1024
+	]
+
+
+@frappe.whitelist(methods=["GET"])
+def mission_files(trip: str):
+	doc = _assigned_trip(trip)
+	return [
+		{field: row[field] for field in ("name", "file_name", "modified", "file_size")}
+		for row in _approved_trip_files(doc)
+	]
+
+
+@frappe.whitelist(methods=["GET"])
+def mission_file(trip: str, file: str, modified: str):
+	from frappe.utils import get_datetime
+	from werkzeug.wrappers import Response
+
+	doc = _assigned_trip(trip)
+	candidate = next(
+		(row for row in _approved_trip_files(doc) if row.name == file
+			and get_datetime(row.modified) == get_datetime(modified)), None,
+	)
+	if candidate is None:
+		frappe.throw(_("This mission document is unavailable."), frappe.PermissionError)
+
+	document = frappe.get_doc("File", candidate.name)
+	if (document.is_private != 1 or document.attached_to_doctype != doc.doctype
+		or document.attached_to_name != doc.name or document.file_url != candidate.file_url
+		or document.modified != candidate.modified):
+		frappe.throw(_("This mission document is unavailable."), frappe.PermissionError)
+	content = document.get_content(encodings=())
+	if not isinstance(content, bytes) or not content.startswith(b"%PDF-") or len(content) > 5 * 1024 * 1024:
+		frappe.throw(_("This mission document is not a supported PDF."))
+	return Response(content, mimetype="application/pdf", headers={
+		"Cache-Control": "private, no-store", "Content-Disposition": "attachment",
+		"X-Content-Type-Options": "nosniff",
+	})
