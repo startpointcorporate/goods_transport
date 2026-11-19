@@ -110,19 +110,24 @@ def protect_trip(trip, before):
 			frappe.throw(_("The odometer reading is already validated by an inspection."))
 
 
-def _trip(name, permission, lock=False):
+def _trip(name, permission, lock=False, authorize=None):
 	trip = frappe.get_doc("Transport Trip", name, for_update=lock)
-	trip.check_permission(permission)
+	if authorize:
+		authorize(trip)
+	else:
+		trip.check_permission(permission)
 	if not enabled(trip):
 		frappe.throw(_("Vehicle inspections are unavailable on this site."))
 	return trip
 
 
-def _inspection(name, permission, lock=False):
+def _inspection(name, permission, lock=False, authorize=None):
 	doc = frappe.get_doc(INSPECTION, name)
-	trip = _trip(doc.trip, permission, lock)
+	trip = _trip(doc.trip, permission, lock, authorize)
 	if lock:
 		doc = frappe.get_doc(INSPECTION, name, for_update=True)
+	if authorize and (doc.driver, doc.vehicle) != (trip.driver, trip.vehicle):
+		frappe.throw(_("The inspection belongs to a different assignment."), frappe.PermissionError)
 	return doc, trip
 
 
@@ -159,15 +164,22 @@ def _phase(trip, phase):
 
 @frappe.whitelist(methods=["POST"])
 def open_inspection(trip, phase, correction_reason=None):
-	trip = _trip(trip, "read", True)
+	return _open_inspection(trip, phase, correction_reason)
+
+
+def _open_inspection(trip, phase, correction_reason=None, authorize=None):
+	trip = _trip(trip, "read", True, authorize)
 	if phase not in ("Departure", "Return"):
 		frappe.throw(_("Invalid inspection phase."))
 	current = latest(trip, phase)
 	if current and not correction_reason:
-		if current.docstatus != 1:
+		if authorize and (current.driver, current.vehicle) != (trip.driver, trip.vehicle):
+			frappe.throw(_("The inspection belongs to a different assignment."), frappe.PermissionError)
+		if current.docstatus != 1 and not authorize:
 			trip.check_permission("write")
 		return _view(current)
-	trip.check_permission("write")
+	if not authorize:
+		trip.check_permission("write")
 	if correction_reason:
 		if not current or current.docstatus != 1 or "System Manager" not in frappe.get_roles() or not correction_reason.strip():
 			frappe.throw(_("A system manager must provide a correction reason for a validated inspection."), frappe.PermissionError)
@@ -177,6 +189,8 @@ def open_inspection(trip, phase, correction_reason=None):
 	if not controls:
 		frappe.throw(_("Assign an inspection template before submitting this trip."))
 	departure = latest(trip, "Departure", submitted=True) if phase == "Return" else None
+	if authorize and departure and (departure.driver, departure.vehicle) != (trip.driver, trip.vehicle):
+		frappe.throw(_("The inspection belongs to a different assignment."), frappe.PermissionError)
 	if phase == "Return" and not departure:
 		frappe.throw(_("Validate the departure inspection first."))
 	initial = current or None
@@ -238,27 +252,20 @@ def _view(doc):
 
 @frappe.whitelist(methods=["POST"])
 def upload_photo(inspection, control):
-	doc, trip = _inspection(inspection, "write", True)
+	return _upload_photo(inspection, control)
+
+
+def _upload_photo(inspection, control, authorize=None):
+	doc, trip = _inspection(inspection, "write", True, authorize)
 	allowed = set(VIEWS) | {row["code"] for row in policy(trip).get("controls", [])}
 	if doc.docstatus or control not in allowed:
 		frappe.throw(_("This inspection cannot receive that photograph."))
 	upload = frappe.request.files.get("file")
 	if not upload:
 		frappe.throw(_("Select a photograph."))
-	content = upload.stream.read(12 * 1024 * 1024 + 1)
-	if len(content) > 12 * 1024 * 1024:
-		frappe.throw(_("The photograph exceeds 12 MB."))
-	try:
-		with Image.open(io.BytesIO(content)) as photo:
-			image_format = photo.format
-			if image_format not in ("JPEG", "PNG", "WEBP"):
-				frappe.throw(_("Use a JPEG, PNG or WebP photograph."))
-			photo.verify()
-	except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
-		frappe.throw(_("The photograph could not be read."))
+	content, suffix = validate_image_upload(upload)
 	frappe.flags.trip_inspection_upload = doc.name
 	try:
-		suffix = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image_format]
 		file = frappe.get_doc({
 			"doctype": "File", "file_name": f"inspection-{uuid4().hex}.{suffix}", "content": content,
 			"is_private": 1, "attached_to_doctype": INSPECTION,
@@ -272,9 +279,28 @@ def upload_photo(inspection, control):
 	return {"name": file.name, "file_url": file.file_url, "attached_to_field": control, "inspection": doc.name}
 
 
+def validate_image_upload(upload):
+	content = upload.stream.read(12 * 1024 * 1024 + 1)
+	if len(content) > 12 * 1024 * 1024:
+		frappe.throw(_("The photograph exceeds 12 MB."))
+	try:
+		with Image.open(io.BytesIO(content)) as photo:
+			image_format = photo.format
+			if image_format not in ("JPEG", "PNG", "WEBP"):
+				frappe.throw(_("Use a JPEG, PNG or WebP photograph."))
+			photo.verify()
+	except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+		frappe.throw(_("The photograph could not be read."))
+	return content, {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image_format]
+
+
 @frappe.whitelist(methods=["POST"])
 def remove_photo(inspection, photo):
-	doc, _trip_doc = _inspection(inspection, "write", True)
+	return _remove_photo(inspection, photo)
+
+
+def _remove_photo(inspection, photo, authorize=None):
+	doc, _trip_doc = _inspection(inspection, "write", True, authorize)
 	file = frappe.get_doc("File", photo, for_update=True)
 	if doc.docstatus or (file.attached_to_doctype, file.attached_to_name) != (INSPECTION, doc.name):
 		frappe.throw(_("Only a photograph attached to this draft can be removed."))
@@ -368,11 +394,15 @@ def _immobilise(doc, trip):
 
 @frappe.whitelist(methods=["POST"])
 def validate_inspection(inspection, odometer, results, observations=None, position=None):
-	doc, trip = _inspection(inspection, "write", True)
+	return _validate_inspection(inspection, odometer, results, observations, position)
+
+
+def _validate_inspection(inspection, odometer, results, observations=None, position=None, authorize=None):
+	doc, trip = _inspection(inspection, "write", True, authorize)
 	if doc.docstatus == 1:
 		return _view(doc)
 	if doc.previous_revision:
-		if "System Manager" not in frappe.get_roles():
+		if authorize or "System Manager" not in frappe.get_roles():
 			frappe.throw(_("Only a system manager may validate a correction."), frappe.PermissionError)
 	else:
 		_phase(trip, doc.phase)
