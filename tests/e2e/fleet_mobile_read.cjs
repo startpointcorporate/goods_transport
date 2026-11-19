@@ -8,6 +8,11 @@ const publicDir = process.env.HRMS_PUBLIC_DIR
 const screenshotDir = process.env.FLEET_CAPTURE_DIR
 const user = "driver@example.test"
 
+const inspection = {
+	name: "INSPECTION-TEST", phase: "Departure", submitted: false, photos: [],
+	controls: [{ code: "body", label_fr: "Carrosserie", label_en: "Bodywork", min_photos: 1 }],
+}
+
 const trip = {
 	name: "TRIP-TEST-001",
 	origin: "Brazzaville",
@@ -41,6 +46,12 @@ async function configure(context) {
 			get_current_employee_info: { name: "EMP-TEST", user_id: user, employee_name: "Chauffeur test" },
 			available: true,
 			missions: { user, trips: [trip] },
+			open_inspection: inspection,
+			validate_inspection: { ...inspection, odometer: "1200", submitted: true },
+			present_fuel_authorizations: [{ name: "CODE-TEST", station: "Station test", authorized_liters: 80 }],
+			delivery_documents: [{ name: "BILTY-TEST", total_quantity: 5, items: [{ item: "Colis", quantity: 5 }] }],
+			confirm_delivery: "POD-TEST",
+			report_critical_incident: "INCIDENT-TEST",
 		}
 		return route.fulfill({ json: { message: messages[method] ?? [] } })
 	})
@@ -68,10 +79,28 @@ async function run() {
 				await fs.mkdir(screenshotDir, { recursive: true })
 				await page.screenshot({ path: path.join(screenshotDir, `fleet-${name}.png`) })
 			}
+			await page.getByRole("button", { name: "Départ", exact: true }).click()
+			await page.getByLabel("Kilométrage réel").fill("1200")
+			await page.getByLabel("Carrosserie").selectOption("Pass")
+			await page.getByRole("button", { name: "Valider l’inspection" }).click()
+			await page.getByText(/Inspection validée/).waitFor()
+
+			await page.getByRole("button", { name: "Présenter une autorisation" }).click()
+			await page.getByText("CODE-TEST", { exact: true }).waitFor()
+			await page.getByRole("button", { name: "Preuve de livraison" }).click()
+			await page.getByLabel("Quantité livrée").fill("5")
+			await page.getByLabel("Nom du réceptionnaire").fill("Test")
+			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
+			await page.getByText(/POD-TEST/).waitFor()
+			await page.getByRole("button", { name: "Signaler une panne critique" }).click()
+			await page.getByLabel("Description").fill("Panne de test")
+			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
+			await page.getByText(/INCIDENT-TEST/).waitFor()
+
 			await page.getByRole("link", { name: "Espace RH" }).click()
 			await page.waitForURL("**/hrms/home")
 			await context.close()
-			console.log(`${name}: HR home → trip → location and fuel → HR home`)
+			console.log(`${name}: HR home → trip → inspection, fuel, POD and incident → HR home`)
 		}
 	} finally {
 		await browser.close()

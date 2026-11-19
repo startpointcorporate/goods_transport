@@ -1,8 +1,11 @@
 <template>
-	<BaseLayout :page-title="labels.trips">
-		<template #body>
+	<ion-page>
+		<ion-header><ion-toolbar><ion-title>{{ labels.trips }}</ion-title></ion-toolbar></ion-header>
+		<ion-content>
 			<div class="flex flex-col gap-4 p-4 pb-16">
-				<RouterLink :to="{ name: 'Home' }" class="underline">{{ labels.hr }}</RouterLink>
+				<RouterLink v-if="!offline" :to="{ name: 'Home' }" class="underline">{{ labels.hr }}</RouterLink>
+				<p v-if="offline" role="status">{{ labels.offline }}</p>
+				<p v-if="lastSync">{{ labels.synced }} {{ lastSync }}</p>
 				<p v-if="loading" role="status">{{ labels.loading }}</p>
 				<p v-else-if="error" role="alert">{{ error }}</p>
 				<template v-else>
@@ -55,38 +58,49 @@
 							<p>{{ authorization.authorized_liters }} L · {{ tripStatus(authorization.status) }}</p>
 							<p>{{ authorization.valid_until }}</p>
 						</div>
+						<FleetInspection v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
+						<FleetOperations v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 					</article>
 				</template>
 			</div>
-		</template>
-	</BaseLayout>
+		</ion-content>
+	</ion-page>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from "vue"
+import { computed, inject, onMounted, onUnmounted, ref } from "vue"
 import { RouterLink } from "vue-router"
-import BaseLayout from "@/components/BaseLayout.vue"
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/vue"
+import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offline"
 import { getFleetData } from "./fleetApi"
+import FleetInspection from "./FleetInspection.vue"
+import FleetOperations from "./FleetOperations.vue"
 
-const french = document.documentElement.lang.startsWith("fr")
+const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
+const offline = ref(offlineShell || !navigator.onLine)
+const french = (readFleetSnapshot()?.lang || document.documentElement.lang || navigator.language).startsWith("fr")
 const tripStatus = inject("$translate")
 const labels = french ? {
 	trips: "Mes missions", hr: "Espace RH", loading: "Chargement des missions…", filter: "Filtrer les missions",
 	all: "Toutes", upcoming: "À venir", active: "En cours", finished: "Terminées",
 	empty: "Aucune mission dans cette catégorie.", back: "Toutes les missions",
 	road: "Feuille de route", fuelStops: "Arrêts carburant", navigate: "Ouvrir la navigation", fuel: "Autorisations de carburant",
+	offline: "Hors ligne. Les opérations nécessitent une connexion.", synced: "Dernière synchronisation",
 	noFuel: "Aucune autorisation de carburant.", unavailable: "Les missions sont indisponibles.",
 } : {
 	trips: "My trips", hr: "HR home", loading: "Loading trips…", filter: "Filter trips",
 	all: "All", upcoming: "Upcoming", active: "In progress", finished: "Completed",
 	empty: "No trips in this category.", back: "All trips", road: "Road sheet", fuelStops: "Fuel stops",
 	navigate: "Open navigation", fuel: "Fuel authorizations", noFuel: "No fuel authorizations.",
+	offline: "Offline. Operations require a connection.", synced: "Last sync",
 	unavailable: "Trips are unavailable.",
 }
 
 const trips = ref([])
 const selected = ref(null)
 const loading = ref(true)
+const lastSync = ref("")
+let request = 0
 const error = ref("")
 const filters = ["all", "upcoming", "active", "finished"]
 const filter = ref("all")
@@ -99,15 +113,61 @@ const visibleTrips = computed(() => trips.value.filter(trip => {
 	return category === filter.value
 }))
 
-onMounted(async () => {
+function showSnapshot(snapshot) {
+	trips.value = snapshot?.trips || []
+	selected.value = trips.value.find(trip => trip.name === selected.value?.name) || null
+	lastSync.value = snapshot?.savedAt ? new Date(snapshot.savedAt).toLocaleString() : ""
+	error.value = snapshot ? "" : labels.unavailable
+}
+
+async function refresh() {
+	const current = ++request
+	offline.value = !navigator.onLine || offlineShell
+	if (offline.value) {
+		showSnapshot(readFleetSnapshot())
+		loading.value = false
+		return
+	}
 	try {
 		const snapshot = await getFleetData("missions")
-		trips.value = snapshot.trips
-	} catch {
-		error.value = labels.unavailable
+		if (current !== request) return
+		showSnapshot({ ...snapshot, savedAt: Date.now() })
+		void saveFleetSnapshot(snapshot)
+	} catch (failure) {
+		if (current !== request) return
+		if (failure instanceof TypeError) {
+			offline.value = true
+			showSnapshot(readFleetSnapshot())
+		} else {
+			purgeFleetSnapshot()
+			showSnapshot(null)
+		}
 	} finally {
-		loading.value = false
+		if (current === request) loading.value = false
 	}
+}
+
+function reconnect() {
+	// Fetch a fresh session bootstrap and CSRF token after a cold offline start.
+	if (offlineShell) window.location.reload()
+	else void refresh()
+}
+
+function storageChanged() {
+	if (offline.value) showSnapshot(readFleetSnapshot())
+}
+
+onMounted(() => {
+	window.addEventListener("online", reconnect)
+	window.addEventListener("offline", refresh)
+	window.addEventListener("storage", storageChanged)
+	void refresh()
+})
+onUnmounted(() => {
+	request++
+	window.removeEventListener("online", reconnect)
+	window.removeEventListener("offline", refresh)
+	window.removeEventListener("storage", storageChanged)
 })
 
 function navigationUrl(location) {

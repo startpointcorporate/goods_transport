@@ -9,6 +9,41 @@ ROUTER = Path("router/index.js")
 HOME = Path("views/Home.vue")
 EDITS = (
 	(
+		Path("main.js"),
+		'if (session?.isLoggedIn && !employeeResource?.data) {',
+		'if (!window.frappe?.boot?.fleet_offline && session?.isLoggedIn && !employeeResource?.data) {',
+	),
+	(
+		Path("main.js"),
+		'router.beforeEach(async (to, _, next) => {',
+		'router.beforeEach(async (to, _, next) => {\n'
+		'\tif (window.frappe?.boot?.fleet_offline) {\n'
+		'\t\treturn next(to.name === "FleetDriverMissions" ? undefined : { name: "FleetDriverMissions" })\n'
+		'\t}',
+	),
+	(
+		Path("data/session.js"),
+		'import router from "@/router"',
+		'import router from "@/router"\nimport { purgeFleetSnapshot } from "@/fleet_driver/offline"',
+	),
+	(
+		Path("data/session.js"),
+		'if (response.message === "Logged In") {',
+		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()',
+	),
+	(
+		Path("data/session.js"),
+		'url: "logout",\n\t\tonSuccess() {',
+		'url: "logout",\n\t\tonSuccess() {\n\t\t\tpurgeFleetSnapshot()',
+	),
+	(
+		Path("../public/sw.js"),
+		'precacheAndRoute(self.__WB_MANIFEST)',
+		'precacheAndRoute(self.__WB_MANIFEST.map(entry => ({\n'
+		'\t...entry, url: new URL(entry.url, self.location.origin + "/assets/hrms/frontend/").href,\n'
+		'})))\n\n' + (EXTENSION / "offlineWorker.js").read_text(),
+	),
+	(
 		ROUTER,
 		'\t\t\t{\n\t\t\t\tpath: "/dashboard/attendance",',
 		'\t\t\t{\n\t\t\t\tpath: "/fleet",\n\t\t\t\tname: "FleetDriverMissions",'
@@ -41,7 +76,7 @@ def integrate(hrms):
 
 	fleet = source / "fleet_driver"
 	fleet.mkdir(exist_ok=True)
-	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js"):
+	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue"):
 		shutil.copyfile(EXTENSION / asset, fleet / asset)
 	for path, content in files.items():
 		path.write_text(content)
