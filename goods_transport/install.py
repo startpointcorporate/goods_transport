@@ -11,6 +11,7 @@ from goods_transport.setup.install_dashboard import install_transport_dashboard
 from goods_transport.setup.install_fleet_maintenance_fields import execute as install_fleet_maintenance_fields
 from goods_transport.setup.install_trip_inspection_fields import execute as install_trip_inspection_fields
 from goods_transport.setup.install_fuel_fields import execute as install_fuel_fields
+from goods_transport.setup.install_fleet_driver import execute as install_fleet_driver
 from goods_transport.setup.install_masters import install_transport_masters
 from goods_transport.setup.install_pay_rules import install_default_pay_rules
 from goods_transport.setup.install_payroll_custom_fields import install_payroll_custom_fields
@@ -37,6 +38,7 @@ def after_install():
 	install_goods_transport_workspace()
 	# Role after workspace so the workspace exists when we attach role visibility.
 	install_transport_user_role()
+	install_fleet_driver()
 	install_driver_payroll()
 
 
