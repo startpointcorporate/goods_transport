@@ -18,6 +18,19 @@ RESULTS = ("Pass", "Fail", "Not Applicable", "Not Checked")
 SEVERITIES = ("Minor", "Major", "Critical")
 VIEWS = ("front", "rear", "left", "right", "cab", "tyres")
 DEPARTURE_STATUSES = ("Vehicle Assigned", "At Loading Point", "Loaded")
+ENCODED_PHOTO_SLOT = "_inspection_"
+
+
+def photo_slot(control):
+	# File.attached_to_field accepts word characters only. The reserved prefix
+	# cannot occur in a template code, so existing attachments remain readable.
+	return ENCODED_PHOTO_SLOT + control.encode("ascii").hex() if "-" in control else control
+
+
+def photo_control(slot):
+	if slot and slot.startswith(ENCODED_PHOTO_SLOT):
+		return bytes.fromhex(slot.removeprefix(ENCODED_PHOTO_SLOT)).decode("ascii")
+	return slot
 
 
 def enabled(trip):
@@ -215,7 +228,10 @@ def _view(doc):
 		"departure": doc.departure, "departure_odometer": frappe.db.get_value(INSPECTION, doc.departure, "odometer") if doc.departure else None,
 		"revision": doc.revision, "submitted": doc.docstatus == 1, "observations": doc.observations,
 		"position": frappe.parse_json(doc.position or "null"),
-		"controls": frappe.parse_json(doc.controls), "photos": [dict(photo, inspection=photo.attached_to_name) for photo in attachments(doc).values()],
+		"controls": frappe.parse_json(doc.controls), "photos": [{
+			"name": photo.name, "file_url": photo.file_url, "inspection": photo.attached_to_name,
+			"attached_to_field": photo_control(photo.attached_to_field),
+		} for photo in attachments(doc).values()],
 		"repair": doc.repair, "maintenance_task": doc.maintenance_task, "immobilisation": doc.immobilisation,
 	}
 
@@ -246,7 +262,7 @@ def upload_photo(inspection, control):
 		file = frappe.get_doc({
 			"doctype": "File", "file_name": f"inspection-{uuid4().hex}.{suffix}", "content": content,
 			"is_private": 1, "attached_to_doctype": INSPECTION,
-			"attached_to_name": doc.name, "attached_to_field": control,
+			"attached_to_name": doc.name, "attached_to_field": photo_slot(control),
 		})
 		file.flags.ignore_duplicate_entry_error = True
 		file.insert(ignore_permissions=True)
@@ -311,7 +327,7 @@ def validate_controls(config, results, files):
 		if result == "Fail" and (not observation or not defect or severity not in SEVERITIES):
 			frappe.throw(_("Provide a defect code, severity and observation for {0}.").format(rule["label_en"]))
 		photos = {
-			file.content_hash for file in files.values() if file.attached_to_field == rule["code"]
+			file.content_hash for file in files.values() if file.attached_to_field == photo_slot(rule["code"])
 		}
 		if result not in ("Not Applicable", "Not Checked") and len(photos) < rule["min_photos"]:
 			frappe.throw(_("Add the required photographs for {0}.").format(rule["label_en"]))

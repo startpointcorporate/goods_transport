@@ -70,7 +70,7 @@ class TestTripInspection(TestCase):
 		self.addCleanup(frappe.set_user, "Administrator")
 		_, self.trip, self.bilty = self.case.route()
 
-	def photo(self, name):
+	def photo(self, name, control="body"):
 		content = io.BytesIO()
 		Image.new("RGB", (32, 32), (32, 64, 92)).save(content, "PNG")
 		builder = EnvironBuilder(method="POST", data={"file": (io.BytesIO(content.getvalue()), "test.png")})
@@ -78,7 +78,7 @@ class TestTripInspection(TestCase):
 		request = Request(builder.get_environ())
 		self.addCleanup(request.close)
 		with patch.object(frappe.local, "request", request, create=True):
-			return upload_photo(name, "body")
+			return upload_photo(name, control)
 
 	def inspect(self, phase, odometer, values=None):
 		doc = open_inspection(self.trip.name, phase)
@@ -87,6 +87,19 @@ class TestTripInspection(TestCase):
 
 	def return_trip(self):
 		self.case.deliver(self.trip, self.bilty)
+
+	def test_hyphen_in_checklist_code_keeps_photo_association(self):
+		template = frappe.get_doc("Trip Inspection Template", self.trip.inspection_template)
+		template.controls[0].code = "body-work"
+		template.save()
+		_, trip, _ = self.case.route(vehicle=self.case.second_vehicle())
+		doc = open_inspection(trip.name, "Departure")
+		photo = self.photo(doc["name"], "body-work")
+		values = results()
+		values["body-work"] = values.pop("body")
+		validated = validate_inspection(doc["name"], "100", values)
+		self.assertEqual(validated["photos"][0]["name"], photo["name"])
+		self.assertEqual(validated["photos"][0]["attached_to_field"], "body-work")
 
 	def test_a_conformity_and_single_vehicle_log(self):
 		with self.assertRaises(frappe.ValidationError):
