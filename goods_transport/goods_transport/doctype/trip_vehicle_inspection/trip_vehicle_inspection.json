@@ -1,0 +1,180 @@
+{
+ "doctype": "DocType",
+ "name": "Trip Vehicle Inspection",
+ "module": "Goods Transport",
+ "engine": "InnoDB",
+ "field_order": [
+  "trip",
+  "vehicle",
+  "plate",
+  "driver",
+  "location",
+  "phase",
+  "revision",
+  "departure",
+  "previous_revision",
+  "correction_reason",
+  "odometer",
+  "validated_at",
+  "validated_by",
+  "observations",
+  "position",
+  "controls",
+  "immobilisation",
+  "repair",
+  "maintenance_task"
+ ],
+ "fields": [
+  {
+   "fieldname": "trip",
+   "fieldtype": "Link",
+   "label": "Transport Trip",
+   "options": "Transport Trip",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "plate",
+   "fieldtype": "Data",
+   "label": "License Plate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "driver",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "Driver",
+   "read_only": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "label": "Inspection Location",
+   "options": "Transport Location",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phase",
+   "fieldtype": "Select",
+   "label": "Inspection Phase",
+   "options": "Departure\nReturn",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "revision",
+   "fieldtype": "Int",
+   "label": "Inspection Revision",
+   "read_only": 1
+  },
+  {
+   "fieldname": "departure",
+   "fieldtype": "Link",
+   "label": "Departure Inspection",
+   "options": "Trip Vehicle Inspection",
+   "read_only": 1
+  },
+  {
+   "fieldname": "previous_revision",
+   "fieldtype": "Link",
+   "label": "Previous Revision",
+   "options": "Trip Vehicle Inspection",
+   "read_only": 1
+  },
+  {
+   "fieldname": "correction_reason",
+   "fieldtype": "Small Text",
+   "label": "Correction Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "odometer",
+   "fieldtype": "Data",
+   "label": "Actual Odometer (km)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "validated_at",
+   "fieldtype": "Datetime",
+   "label": "Validated At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "validated_by",
+   "fieldtype": "Link",
+   "label": "Validated By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "observations",
+   "fieldtype": "Small Text",
+   "label": "General Observations",
+   "read_only": 1
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "JSON",
+   "label": "Inspection GPS Position",
+   "read_only": 1
+  },
+  {
+   "fieldname": "controls",
+   "fieldtype": "JSON",
+   "label": "Validated Inspection Controls",
+   "read_only": 1
+  },
+  {
+   "fieldname": "immobilisation",
+   "fieldtype": "Link",
+   "label": "Vehicle Immobilisation",
+   "options": "Vehicle Immobilisation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "repair",
+   "fieldtype": "Link",
+   "label": "Asset Repair",
+   "options": "Asset Repair",
+   "read_only": 1
+  },
+  {
+   "fieldname": "maintenance_task",
+   "fieldtype": "Link",
+   "label": "Maintenance Follow-up",
+   "options": "ToDo",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1
+  },
+  {
+   "role": "Stock Manager",
+   "read": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1
+  },
+  {
+   "role": "Transport User",
+   "read": 1
+  }
+ ],
+ "autoname": "format:TVI-{########}",
+ "is_submittable": 1,
+ "track_changes": 1
+}

@@ -2554,3 +2554,258 @@ msgstr "Extérieur"
 
 msgid "This tyre is already mounted on a vehicle."
 msgstr "Ce pneu est déjà monté sur un véhicule."
+
+msgid "Add the required photographs for {0}."
+msgstr "Ajoutez les photographies obligatoires pour {0}."
+
+msgid "Administrative Correction"
+msgstr "Correction administrative"
+
+msgid "Allow Not Applicable"
+msgstr "Autoriser Non applicable"
+
+msgid "Assign an inspection template before submitting this trip."
+msgstr "Affectez un modèle d’état des lieux avant de soumettre cette mission."
+
+msgid "Cab"
+msgstr "Cabine"
+
+msgid "Compare Vehicle Inspections"
+msgstr "Comparer les états des lieux"
+
+msgid "Complete the required control {0}."
+msgstr "Renseignez le contrôle obligatoire {0}."
+
+msgid "Compliant"
+msgstr "Conforme"
+
+msgid "Control Code"
+msgstr "Code du contrôle"
+
+msgid "Controls Checked"
+msgstr "Éléments contrôlés"
+
+msgid "Correction Reason"
+msgstr "Motif de correction"
+
+msgid "Create Maintenance Repair"
+msgstr "Créer une intervention de maintenance"
+
+msgid "Critical safety defect in inspection {0}"
+msgstr "Défaut de sécurité critique constaté dans l’état des lieux {0}"
+
+msgid "Defect Code"
+msgstr "Code d’anomalie"
+
+msgid "Defect recorded during inspection {0}"
+msgstr "Anomalie relevée pendant l’état des lieux {0}"
+
+msgid "Departure Inspection"
+msgstr "État des lieux de départ"
+
+msgid "Departure inspection {0} · {1} km"
+msgstr "Inspection de départ {0} · {1} km"
+
+msgid "English Label"
+msgstr "Libellé anglais"
+
+msgid "Enlarge photograph"
+msgstr "Agrandir la photo"
+
+msgid "Enter the actual odometer."
+msgstr "Saisissez le kilométrage réel."
+
+msgid "Existing Defect"
+msgstr "Anomalie préexistante"
+
+msgid "Existing Defects"
+msgstr "Anomalies préexistantes"
+
+msgid "Fail"
+msgstr "Non conforme"
+
+msgid "French Label"
+msgstr "Libellé français"
+
+msgid "Front"
+msgstr "Avant"
+
+msgid "GPS position is unavailable."
+msgstr "La position GPS est indisponible."
+
+msgid "GPS position recorded."
+msgstr "Position GPS enregistrée."
+
+msgid "General Observations"
+msgstr "Observations générales"
+
+msgid "Import Photograph"
+msgstr "Importer une photo"
+
+msgid "Improved"
+msgstr "Amélioré"
+
+msgid "Inspection Controls"
+msgstr "Points de contrôle"
+
+msgid "Inspection History"
+msgstr "Historique des états des lieux"
+
+msgid "Inspection Location"
+msgstr "Lieu de l’inspection"
+
+msgid "Inspection Phase"
+msgstr "Phase de l’inspection"
+
+msgid "Inspection Policy"
+msgstr "Règles d’inspection"
+
+msgid "Inspection Revision"
+msgstr "Révision de l’inspection"
+
+msgid "Inspection photograph"
+msgstr "Photo de l’état des lieux"
+
+msgid "Link a maintenance asset to this vehicle before requesting a repair."
+msgstr "Associez un actif de maintenance au véhicule avant de demander une intervention."
+
+msgid "Major"
+msgstr "Majeure"
+
+msgid "Mandatory Document Control"
+msgstr "Contrôle des documents obligatoires"
+
+msgid "Minor"
+msgstr "Mineure"
+
+msgid "Missing"
+msgstr "Manquante"
+
+msgid "New Defect"
+msgstr "Nouvelle anomalie"
+
+msgid "New Defects"
+msgstr "Nouvelles anomalies"
+
+msgid "Non-compliant"
+msgstr "Non conforme"
+
+msgid "Not Applicable"
+msgstr "Non applicable"
+
+msgid "Not Checked"
+msgstr "Non vérifié"
+
+msgid "Observation"
+msgstr "Observation"
+
+msgid "Open Repair"
+msgstr "Ouvrir l’intervention"
+
+msgid "Operational Compliance"
+msgstr "Conformité opérationnelle"
+
+msgid "Overall Result"
+msgstr "Résultat global"
+
+msgid "Pass"
+msgstr "Conforme"
+
+msgid "Previous Revision"
+msgstr "Révision précédente"
+
+msgid "Rear"
+msgstr "Arrière"
+
+msgid "Recommended General Views"
+msgstr "Vues générales recommandées"
+
+msgid "Record GPS Position"
+msgstr "Enregistrer la position GPS"
+
+msgid "Remove Photograph"
+msgstr "Retirer la photo"
+
+msgid "Require Inspections for New Trips"
+msgstr "Exiger les inspections pour les nouvelles missions"
+
+msgid "Required Control"
+msgstr "Contrôle obligatoire"
+
+msgid "Required Photographs"
+msgstr "Photos obligatoires"
+
+msgid "Required photographs: {0}"
+msgstr "Photos requises ({0})"
+
+msgid "Resolved"
+msgstr "Résolu"
+
+msgid "Result"
+msgstr "Résultat"
+
+msgid "Return"
+msgstr "Retour"
+
+msgid "Return Inspection"
+msgstr "État des lieux de retour"
+
+msgid "Review Required"
+msgstr "À examiner"
+
+msgid "Safety Control"
+msgstr "Contrôle de sécurité"
+
+msgid "Take Photograph"
+msgstr "Prendre une photo"
+
+msgid "The photograph could not be uploaded."
+msgstr "La photo n’a pas pu être enregistrée."
+
+msgid "This phase cannot be inspected at the current trip status."
+msgstr "Le statut actuel de la mission ne permet pas cette inspection."
+
+msgid "Trip Inspection Control"
+msgstr "Point de contrôle"
+
+msgid "Trip Inspection Template"
+msgstr "Modèle d’état des lieux"
+
+msgid "Trip Vehicle Inspection"
+msgstr "État des lieux du véhicule"
+
+msgid "Unchanged"
+msgstr "Inchangé"
+
+msgid "Validate Inspection"
+msgstr "Valider l’état des lieux"
+
+msgid "Validate the departure inspection before leaving."
+msgstr "Validez l’état des lieux de départ avant de partir."
+
+msgid "Validate the departure inspection first."
+msgstr "Validez d’abord l’état des lieux de départ."
+
+msgid "Validate the return inspection before closing the trip."
+msgstr "Validez l’état des lieux de retour avant de clôturer la mission."
+
+msgid "Validated"
+msgstr "Validée"
+
+msgid "Vehicle Compliance"
+msgstr "Conformité du véhicule"
+
+msgid "Worsened"
+msgstr "Aggravé"
+
+msgid "Maintenance Follow-up"
+msgstr "Demande de suivi maintenance"
+
+msgid "Maintenance follow-up for inspection {0}. Link a maintenance asset to enable an Asset Repair."
+msgstr "Demande de suivi maintenance pour l’état des lieux {0}. Associez un actif de maintenance pour ouvrir une réparation."
+
+msgid "Inspected by {0} on {1}"
+msgstr "Inspection réalisée par {0} le {1}"
+
+msgid "Validated by {0} on {1}"
+msgstr "Validation par {0} le {1}"
