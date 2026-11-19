@@ -39,7 +39,7 @@ def add_asset(case):
 	asset = fixtures.make("Asset", True, item_code=item.name, asset_name=case.label, location=location.name,
 		company=company, purchase_date=frappe.utils.today(), available_for_use_date=frappe.utils.today(),
 		asset_type="Existing Asset", net_purchase_amount=200000)
-	vehicle = case.vehicle.reload()
+	vehicle = frappe.get_doc("Vehicle", case.vehicle.name)
 	vehicle.custom_maintenance_asset = asset.name
 	vehicle.save()
 
