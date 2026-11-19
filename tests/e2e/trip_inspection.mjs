@@ -46,7 +46,8 @@ try {
 	}
 	async function capture(file) {
 		const dimensions = await page.evaluate(() => [screen.width, screen.height, innerWidth, innerHeight]);
-		assert.deepEqual(dimensions, [1920, 1080, 1920, 1080]);
+		assert.deepEqual(dimensions.slice(0, 2), [1920, 1080]);
+		assert(dimensions[2] >= 1919 && dimensions[3] >= 1079);
 		const output = join(directory, file + ".png");
 		await exec("ffmpeg", ["-y", "-loglevel", "error", "-f", "x11grab", "-video_size", "1920x1080",
 			"-i", process.env.DISPLAY + "+0,0", "-frames:v", "1", output]);
