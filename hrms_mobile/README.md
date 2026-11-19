@@ -35,7 +35,7 @@ L’API de synchronisation renvoie une projection de lecture qui exclut les coû
 
 Les missions synchronisées sont conservées dans le stockage local de l’origine pour le compte courant, avec une durée maximale de 12 heures. Le changement d’identité, la déconnexion HRMS, l’expiration ou le refus serveur lors d’une actualisation invalident la copie. Afficher la date de synchronisation et actualiser quand la connexion revient. Les opérations d’écriture ne sont accessibles qu’en ligne.
 
-La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF existant, les péages et les documents enregistrés pour lecture hors ligne restent à intégrer. Les incidents généraux non immobilisants restent à couvrir.
+La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. L’accès aux autres pièces jointes reste à intégrer. Les incidents généraux non immobilisants restent à couvrir.
 
 ## Recette
 
@@ -46,3 +46,11 @@ HRMS_PUBLIC_DIR=apps/hrms/hrms/public node apps/goods_transport/tests/e2e/fleet_
 ```
 
 Le test serveur utilise des comptes Frappe sur un site isolé. Les scripts Playwright utilisent le build HRMS et des réponses API de test. Les environnements ont des objectifs complémentaires. Une recette HTTP authentifiée sur l’image candidate et le contrôle des cinq autres sites restent nécessaires pour valider le déploiement partagé.
+
+## Documents de route et péages
+
+Dans le détail d’une mission, sélectionner la langue puis **Synchroniser le PDF**. Le PDF chauffeur réutilise le moteur de rendu de la feuille de route Goods Transport avec une projection distincte des données autorisées. Les deux langues sont stockées séparément dans IndexedDB dans la limite de 5 Mio par fichier. Le cache PDF et péages suit l’identité du compte, la révision de la mission et l’expiration du lot correspondant. Il est effacé avec le lot lors d’une déconnexion ou d’un changement d’identité.
+
+Les péages proviennent du calcul existant de correspondance avec la géométrie poids lourds. Le document et l’API ne chargent aucun tarif. Un plan confirmé utilise ses points enregistrés. Si le graphe a changé ou si les coordonnées sont absentes, l’interface indique que le plan est indisponible.
+
+Cette tranche ne publie aucune pièce jointe générique. Il reste à définir quels documents privés d’une mission sont destinés au chauffeur et comment cette autorisation sera renseignée dans Goods Transport.

@@ -76,7 +76,7 @@ def integrate(hrms):
 
 	fleet = source / "fleet_driver"
 	fleet.mkdir(exist_ok=True)
-	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue"):
+	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js"):
 		shutil.copyfile(EXTENSION / asset, fleet / asset)
 	for path, content in files.items():
 		path.write_text(content)

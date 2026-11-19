@@ -72,7 +72,7 @@ async function run() {
 			await page.getByRole("link", { name: "Mes missions" }).click()
 			await page.waitForURL("**/hrms/fleet")
 			await page.getByRole("button", { name: /TRIP-TEST-001/ }).click()
-			await page.getByRole("heading", { name: "Feuille de route" }).waitFor()
+			await page.getByRole("heading", { name: "Feuille de route", exact: true }).waitFor()
 			assert.match(await page.getByRole("link", { name: "Ouvrir la navigation" }).getAttribute("href"), /maps/)
 			await page.getByText("Station test", { exact: false }).waitFor()
 			if (screenshotDir) {

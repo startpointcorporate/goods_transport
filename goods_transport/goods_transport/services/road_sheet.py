@@ -188,3 +188,15 @@ def render(trip_name: str, language: str, inputs: str, modified: str, pdf: int =
 			"Cache-Control": "private, no-store",
 		})
 	return Response(html, mimetype="text/html", headers={"Cache-Control": "private, no-store"})
+
+
+def fleet_pdf(trip, tolls, language):
+	"""Render the chauffeur projection with the same PDF engine as the Desk."""
+	html = frappe.render_template("goods_transport/templates/fleet_road_sheet.html", {
+		"trip": trip, "tolls": tolls, "fr": language == "fr",
+	})
+	return Response(get_pdf(html, {"page-size": "A4"}), mimetype="application/pdf", headers={
+		"Content-Disposition": f'inline; filename="road-sheet-{language}.pdf"',
+		"Cache-Control": "private, no-store",
+		"X-Content-Type-Options": "nosniff",
+	})

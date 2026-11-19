@@ -58,6 +58,7 @@
 							<p>{{ authorization.authorized_liters }} L · {{ tripStatus(authorization.status) }}</p>
 							<p>{{ authorization.valid_until }}</p>
 						</div>
+						<FleetRoadDocuments :key="selected.name" :trip="selected" :french="french" :offline="offline" />
 						<FleetInspection v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 						<FleetOperations v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 					</article>
@@ -75,6 +76,7 @@ import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offl
 import { getFleetData } from "./fleetApi"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
+import FleetRoadDocuments from "./FleetRoadDocuments.vue"
 
 const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
 const offline = ref(offlineShell || !navigator.onLine)

@@ -10,7 +10,7 @@ from frappe.utils import now_datetime
 from goods_transport.setup.install_fleet_driver import ROLE
 
 TRIP_FIELDS = (
-	"name", "trip_date", "status", "vehicle", "vehicle_license_plate", "origin",
+	"name", "modified", "trip_date", "status", "vehicle", "vehicle_license_plate", "origin",
 	"destination", "planned_departure_at", "planned_return_at", "departure_time",
 	"arrival_time", "actual_distance", "departure_odometer", "arrival_odometer",
 )
@@ -280,3 +280,59 @@ def present_fuel_authorizations(trip: str):
 		"trip": trip.name, "company": trip.company, "driver": trip.driver, "vehicle": trip.vehicle,
 		"status": "Reserved", "valid_from": ["<=", now], "valid_until": [">", now],
 	}, fields=["name", "station", "authorized_liters", "valid_until"])
+
+
+def _route_tolls(trip, projection):
+	from frappe.utils import getdate
+
+	from .road_sheet import INPUTS
+	from .truck_plan import fetch_route, plan_signature, planned_tolls
+
+	url = frappe.conf.get("goods_transport_truck_osrm_url")
+	points = [(row.longitude, row.latitude) for row in projection["locations"]]
+	if not url or len(points) < 2 or any(
+		lon is None or lat is None or (lon, lat) == (0, 0)
+		or not (-180 <= lon <= 180 and -90 <= lat <= 90) for lon, lat in points
+	):
+		return None
+	stored = json.loads(trip.fuel_plan_inputs or "{}")
+	forecast = stored.get("confirmed_forecast")
+	args = {key: stored.get(key) for key in INPUTS}
+	confirmed = bool(forecast and stored.get("signature") == plan_signature(trip, args, forecast))
+	try:
+		route = fetch_route(url, forecast["waypoints"] if confirmed else points, fuel_stop=confirmed)
+	except frappe.ValidationError:
+		return None
+	if not route or (confirmed and abs(route["distance"] - forecast["distance"]) > 1):
+		return None
+	stations = {
+		row.name: row for row in frappe.get_all("Transport Location",
+			filters={"location_type": "Péage", "is_active": 1},
+			fields=["name", "location_name", "address", "latitude", "longitude",
+				"custom_toll_accuracy_m", "custom_toll_precision"])
+	}
+	for station in stations.values():
+		station.custom_toll_rates = []
+	rows = planned_tolls(route["geometry"]["coordinates"], stations.values(), getdate(trip.trip_date), None)
+	return [{
+		"name": stations[row["name"]].location_name or row["name"],
+		"axis": trip.route, "address": stations[row["name"]].address,
+		"latitude": row["latitude"], "longitude": row["longitude"], "precision": row["precision"],
+	} for row in rows]
+
+
+@frappe.whitelist(methods=["GET"])
+def route_tolls(trip: str):
+	doc = _assigned_trip(trip)
+	return _route_tolls(doc, _project_trip(doc, {"driver": doc.driver, "company": doc.company}))
+
+
+@frappe.whitelist(methods=["GET"])
+def road_sheet_pdf(trip: str, language: str):
+	from .road_sheet import fleet_pdf
+
+	doc = _assigned_trip(trip)
+	if language not in ("fr", "en"):
+		frappe.throw(_("Select French or English."))
+	projection = _project_trip(doc, {"driver": doc.driver, "company": doc.company})
+	return fleet_pdf(projection, _route_tolls(doc, projection), language)
