@@ -2809,3 +2809,105 @@ msgstr "Inspection réalisée par {0} le {1}"
 
 msgid "Validated by {0} on {1}"
 msgstr "Validation par {0} le {1}"
+
+msgid "Fleet Map"
+msgstr "Carte de la flotte"
+
+msgid "View on map"
+msgstr "Voir sur la carte"
+
+msgid "Refresh map"
+msgstr "Actualiser la carte"
+
+msgid "Open Transport Trip"
+msgstr "Ouvrir la mission"
+
+msgid "Loading mission map…"
+msgstr "Chargement de la carte de la mission…"
+
+msgid "Select a transport trip to display its route and stops."
+msgstr "Sélectionnez une mission pour afficher son itinéraire et ses arrêts."
+
+msgid "Some map tiles could not be loaded."
+msgstr "Certaines tuiles cartographiques sont indisponibles."
+
+msgid "Could not load the mission map."
+msgstr "Impossible de charger la carte de la mission."
+
+msgid "Truck route · {0} km"
+msgstr "Itinéraire poids lourd · {0} km"
+
+msgid "Car route · {0} km"
+msgstr "Itinéraire voiture · {0} km"
+
+msgid "Planned distance · {0} km"
+msgstr "Distance prévue · {0} km"
+
+msgid "Indicative route. Check local truck restrictions and use weigh stations."
+msgstr "Itinéraire indicatif. Confirmez les restrictions locales des poids lourds et passez par les postes de pesage."
+
+msgid "Last known position unavailable"
+msgstr "Dernière position connue indisponible"
+
+msgid "Recent position"
+msgstr "Position récente"
+
+msgid "Old position"
+msgstr "Position ancienne"
+
+msgid "Last fix {0} · {1} min ago"
+msgstr "Dernier relevé {0} · il y a {1} min"
+
+msgid "Accuracy {0} m"
+msgstr "Précision {0} m"
+
+msgid "Destination"
+msgstr "Destination"
+
+msgid "Waypoint"
+msgstr "Étape"
+
+msgid "Toll"
+msgstr "Péage"
+
+msgid "Workshop"
+msgstr "Atelier"
+
+msgid "Partner station available"
+msgstr "Station partenaire disponible"
+
+msgid "Planned fuel stop"
+msgstr "Arrêt carburant prévu"
+
+msgid "Partner station unavailable"
+msgstr "Station partenaire non utilisable"
+
+msgid "Truck position"
+msgstr "Position du camion"
+
+msgid "Estimated crossing"
+msgstr "Passage estimé"
+
+msgid "Unverified or unavailable tariff"
+msgstr "Tarif non vérifié ou indisponible"
+
+msgid "Planned {0} L"
+msgstr "Prévus {0} L"
+
+msgid "Authorized {0} L"
+msgstr "Autorisés {0} L"
+
+msgid "Reserve {0} · {1} L available"
+msgstr "Réserve {0} · {1} L disponibles"
+
+msgid "GPS coordinates unavailable"
+msgstr "Coordonnées GPS indisponibles"
+
+msgid "Show {0} map points"
+msgstr "Afficher {0} points sur la carte"
+
+msgid "Route unavailable. Review the mission coordinates and road plan."
+msgstr "Itinéraire indisponible. Vérifiez les coordonnées et le plan de route de la mission."
+
+msgid "Truck route (solid) · Car route (dashed)"
+msgstr "Poids lourd (trait continu) · Voiture (pointillés)"

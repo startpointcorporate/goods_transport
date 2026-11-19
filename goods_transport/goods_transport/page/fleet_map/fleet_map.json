@@ -1,0 +1,9 @@
+{
+ "doctype": "Page",
+ "module": "Goods Transport",
+ "name": "fleet-map",
+ "page_name": "fleet-map",
+ "standard": "Yes",
+ "title": "Fleet Map",
+ "roles": []
+}

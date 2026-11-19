@@ -2,7 +2,7 @@ frappe.provide("goods_transport.toll_map");
 
 Object.assign(goods_transport.toll_map, {
 	async show({ geometry, waypoints = [], tolls, distance_m, duration_s }) {
-		await frappe.require(["leaflet.bundle.js", "leaflet.bundle.css"]);
+		await frappe.require(["leaflet.bundle.js", "leaflet.bundle.css", "/assets/goods_transport/js/map_surface.js"]);
 		const dialog = new frappe.ui.Dialog({
 			title: geometry ? __("Itinéraire et péages") : __("Carte des péages"),
 			size: "extra-large",
@@ -21,16 +21,12 @@ Object.assign(goods_transport.toll_map, {
 		}
 		dialog.show();
 
-		const map = L.map(container[0], { maxZoom: 19 });
-		L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-			maxZoom: 19,
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-		}).addTo(map);
+		const map = goods_transport.map_surface.create(container[0]);
 		const layers = [];
 		if (geometry) {
-			layers.push(L.polyline(geometry.map(([lon, lat]) => [lat, lon]), {
+			layers.push(goods_transport.map_surface.path(map, geometry, {
 				color: "#1a66b3", weight: 5,
-			}).addTo(map));
+			}));
 		}
 		for (const stop of waypoints) {
 			const [lon, lat] = stop.coordinates;

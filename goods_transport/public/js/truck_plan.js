@@ -34,7 +34,7 @@ goods_transport.truck_plan.open = function (frm) {
 				args,
 				freeze: true,
 			});
-			await frappe.require(["leaflet.bundle.js", "leaflet.bundle.css"]);
+			await frappe.require(["leaflet.bundle.js", "leaflet.bundle.css", "/assets/goods_transport/js/map_surface.js"]);
 			dialog.hide();
 			goods_transport.truck_plan.show(message, frm, args);
 		},
@@ -67,14 +67,8 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 	$("<p>").text(__("Passages estimés à partir du tracé. Le coût final dépend du franchissement et du tarif en gare.")).appendTo(body);
 
 	dialog.show();
-	const map = L.map(canvas[0]);
-	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-		maxZoom: 19,
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-	}).addTo(map);
-	const path = (route, style) => L.polyline(
-		route.geometry.coordinates.map(([lon, lat]) => [lat, lon]), style,
-	).addTo(map);
+	const map = goods_transport.map_surface.create(canvas[0]);
+	const path = (route, style) => goods_transport.map_surface.path(map, route.geometry.coordinates, style);
 	const truck = path(plan.truck, { color: "#1765ab", weight: 6 });
 	path(plan.car, { color: "#737d8a", dashArray: "3, 6", weight: 3 });
 	for (const toll of plan.tolls) {

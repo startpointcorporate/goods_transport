@@ -19,3 +19,4 @@ goods_transport.patches.v1_3.install_transport_user
 goods_transport.setup.install_fuel_fields
 goods_transport.setup.install_fleet_maintenance_fields
 goods_transport.setup.install_trip_inspection_fields
+goods_transport.patches.v1_0.install_fleet_map_link

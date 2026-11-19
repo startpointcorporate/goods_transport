@@ -15,6 +15,7 @@ WORKSPACE_NAME = "Goods Transport"
 
 LINKS = [
 	{"type": "Card Break", "label": "Operations"},
+	{"type": "Link", "label": "Fleet Map", "link_type": "Page", "link_to": "fleet-map"},
 	{"type": "Link", "label": "Transport Order", "link_type": "DocType", "link_to": "Transport Order"},
 	{"type": "Link", "label": "Transport Trip", "link_type": "DocType", "link_to": "Transport Trip"},
 	{"type": "Link", "label": "Bilty", "link_type": "DocType", "link_to": "Bilty"},

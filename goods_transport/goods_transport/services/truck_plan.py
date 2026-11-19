@@ -58,15 +58,30 @@ def number(value, default=0):
 	return float(default if value is None else value)
 
 
+def osrm_response(url, params, timeout):
+	# The Desk map may cache OSRM responses. Reserves and route-plan decisions
+	# are always evaluated against current Frappe data.
+	key = None
+	if frappe.flags.get("goods_transport_cache_osrm"):
+		identity = [url, params, frappe.conf.get("goods_transport_osrm_graph_revision")]
+		key = "goods_transport:map:osrm:" + sha256(dumps(identity, sort_keys=True).encode()).hexdigest()
+		cached = frappe.cache.get_value(key)
+		if cached is not None:
+			return cached
+	response = requests.get(url, params=params, timeout=timeout).json()
+	if key and response.get("code") == "Ok":
+		frappe.cache.set_value(key, response, expires_in_sec=300)
+	return response
+
+
 def fetch_route(base, locations, *, fuel_stop=False):
 	query = ";".join(f"{lon:.7f},{lat:.7f}" for lon, lat in locations)
 	try:
-		response = requests.get(f"{base.rstrip('/')}/route/v1/driving/{query}", params={
+		payload = osrm_response(f"{base.rstrip('/')}/route/v1/driving/{query}", {
 			"overview": "full", "geometries": "geojson",
 			"radiuses": ";".join(["1000"] * len(locations)),
 			**({"continue_straight": "true"} if fuel_stop else {}),
 		}, timeout=(3, 15))
-		payload = response.json()
 		if payload.get("code") == "Ok":
 			return payload["routes"][0]
 		if payload.get("code") in ("NoRoute", "NoSegment"):
@@ -120,8 +135,7 @@ def planned_tolls(path, stops, date, category):
 def fetch_distances(base, points):
 	def query(service, locations, params):
 		coords = ";".join(f"{lon:.7f},{lat:.7f}" for lon, lat in locations)
-		return requests.get(f"{base.rstrip('/')}/{service}/v1/driving/{coords}",
-			params=params, timeout=(3, 12)).json()
+		return osrm_response(f"{base.rstrip('/')}/{service}/v1/driving/{coords}", params, timeout=(3, 12))
 
 	try:
 		radii = ";".join(["1000"] * len(points))
