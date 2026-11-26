@@ -257,6 +257,10 @@ class TestBillingStillWorks(unittest.TestCase):
 			create_sales_invoice_from_bilties,
 		)
 
+		from goods_transport.goods_transport.services.operations import create_pod_from_bilty
+
+		frappe.db.savepoint("cargo_billing")
+		self.addCleanup(frappe.db.rollback, save_point="cargo_billing")
 		bilty = frappe.get_doc(
 			{
 				"doctype": "Bilty",
@@ -269,6 +273,7 @@ class TestBillingStillWorks(unittest.TestCase):
 				"rate_basis": "Per Ton",
 				"rate": 7000,
 				"freight_quantity": 3,
+				"pod_required": 1,
 			}
 		)
 		bilty.append(
@@ -281,27 +286,13 @@ class TestBillingStillWorks(unittest.TestCase):
 		)
 		bilty.insert()
 		bilty.submit()
-		try:
-			si_name = create_sales_invoice_from_bilties([bilty.name])
-			si = frappe.get_doc("Sales Invoice", si_name)
-			item_codes = [row.item_code for row in si.items]
-			self.assertIn(FREIGHT_ITEM, item_codes)
-			self.assertIn(LOADING_ITEM, item_codes)
-			# Cargo Item must never appear as an invoice line.
-			self.assertNotIn(CARGO_SAMPLE, item_codes)
-		finally:
-			# Clean up: cancel the SI (if inserted), then unlink and cancel the bilty.
-			if frappe.db.exists("Sales Invoice", si_name):
-				try:
-					si.cancel()
-				except Exception:
-					pass
-			frappe.db.set_value("Bilty", bilty.name, "sales_invoice", None)
-			bilty.reload()
-			try:
-				bilty.cancel()
-			except Exception:
-				pass
+		create_pod_from_bilty(bilty.name, bilty.total_quantity, "Fictitious Cargo Receiver")
+		si_name = create_sales_invoice_from_bilties([bilty.name])
+		si = frappe.get_doc("Sales Invoice", si_name)
+		item_codes = [row.item_code for row in si.items]
+		self.assertIn(FREIGHT_ITEM, item_codes)
+		self.assertIn(LOADING_ITEM, item_codes)
+		self.assertNotIn(CARGO_SAMPLE, item_codes)
 
 
 # --- helpers ---------------------------------------------------------------

@@ -1,5 +1,11 @@
 frappe.ui.form.on("Bilty", {
 	setup(frm) {
+		frm.set_query("transport_trip", () => ({ filters: { docstatus: ["!=", 2], company: frm.doc.company } }));
+		frm.set_query("transport_order", () => {
+			const filters = { docstatus: 1, company: frm.doc.company };
+			if (frm.doc.customer) filters.customer = frm.doc.customer;
+			return { filters };
+		});
 		// Cargo grid: only physical-cargo Items (Cargo Items group + descendants).
 		// Applied via set_query on the child field so it fires on the row picker
 		// every time the user adds or edits a row. Server-side validate() enforces.
@@ -7,8 +13,18 @@ frappe.ui.form.on("Bilty", {
 			query: "goods_transport.goods_transport.services.cargo.cargo_item_query",
 		}));
 	},
+	async transport_order(frm) {
+		const order = frm.doc.transport_order;
+		if (!order || frm.doc.docstatus !== 0) return;
+		const { message } = await frappe.db.get_value("Transport Order", order, [
+			"customer", "company", "origin", "destination", "loading_location", "delivery_location",
+			"rate_basis", "rate", "currency", "pod_required",
+		]);
+		if (message && frm.doc.transport_order === order) await frm.set_value(message);
+	},
 	refresh(frm) {
 		if (
+			frappe.model.can_create("Proof of Delivery") && frappe.model.can_submit("Proof of Delivery") &&
 			frm.doc.docstatus === 1 &&
 			frm.doc.pod_required &&
 			frm.doc.pod_status === "Pending"
@@ -50,7 +66,8 @@ frappe.ui.form.on("Bilty", {
 				__("Actions"),
 			);
 		}
-		if (frm.doc.docstatus === 1 && !frm.doc.sales_invoice) {
+		if (frm.doc.docstatus === 1 && !frm.doc.sales_invoice && frm.perm[0]?.write
+			&& frappe.model.can_create("Sales Invoice") && (!frm.doc.pod_required || frm.doc.pod_status === "Received")) {
 			frm.add_custom_button(
 				__("Sales Invoice"),
 				() => {
@@ -69,7 +86,7 @@ frappe.ui.form.on("Bilty", {
 				__("Create"),
 			);
 		}
-		if (frm.doc.sales_invoice) {
+		if (frm.doc.sales_invoice && frappe.model.can_read("Sales Invoice")) {
 			frm.add_custom_button(
 				__("Sales Invoice"),
 				() => frappe.set_route("Form", "Sales Invoice", frm.doc.sales_invoice),

@@ -9,6 +9,12 @@ class ProofofDelivery(Document):
 		self.shipped_quantity = self._get_shipped_quantity()
 		self._compute_short_quantity()
 
+	def before_submit(self):
+		if frappe.db.get_value("Proof of Delivery", {
+			"bilty": self.bilty, "docstatus": 1, "name": ["!=", self.name],
+		}, "name", for_update=True):
+			frappe.throw(_("A submitted Proof of Delivery already exists for Bilty {0}.").format(self.bilty))
+
 	def on_submit(self):
 		# Advance Bilty state.
 		bilty = frappe.get_doc("Bilty", self.bilty)
@@ -44,12 +50,18 @@ class ProofofDelivery(Document):
 	# --- helpers ---------------------------------------------------------
 
 	def _get_shipped_quantity(self):
-		source = frappe.db.get_value("Bilty", self.bilty, ["docstatus", "total_quantity"], as_dict=True)
+		source = frappe.db.get_value(
+			"Bilty", self.bilty, ["docstatus", "total_quantity", "transport_trip", "customer", "destination"],
+			as_dict=True, for_update=True,
+		)
 		if source is None:
 			frappe.throw(_("Bilty {0} does not exist.").format(self.bilty))
 		if source.docstatus != 1:
 			frappe.throw(_("Bilty {0} is not submitted.").format(self.bilty))
 
+		self.trip = source.transport_trip
+		self.customer = source.customer
+		self.destination = source.destination
 		return source.total_quantity
 
 	def _compute_short_quantity(self):

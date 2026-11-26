@@ -29,6 +29,9 @@
   "origin",
   "destination",
   "column_break_r1",
+  "via",
+  "planned_cargo_weight",
+  "order_allocations",
   "planned_distance",
   "actual_distance",
   "inspection_template",
@@ -208,6 +211,9 @@
    "fieldtype": "Float",
    "label": "Planned Distance (km)"
   },
+  {"fieldname": "via", "fieldtype": "Link", "label": "Intermediate Stop", "options": "Transport Location"},
+  {"fieldname": "planned_cargo_weight", "fieldtype": "Float", "label": "Planned Cargo Weight (kg)", "non_negative": 1, "read_only_depends_on": "eval:doc.order_allocations && doc.order_allocations.length"},
+  {"fieldname": "order_allocations", "fieldtype": "Table", "label": "Order Allocations", "options": "Trip Order Allocation"},
   {"fieldname": "actual_distance", "fieldtype": "Float", "label": "Actual Distance (km)"},
   {"fieldname": "inspection_template", "fieldtype": "Link", "label": "Trip Inspection Template", "options": "Trip Inspection Template", "no_copy": 1},
   {"fieldname": "inspection_policy", "fieldtype": "JSON", "label": "Inspection Policy", "hidden": 1, "read_only": 1, "no_copy": 1},
@@ -250,10 +256,7 @@
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [
-  {"link_doctype": "Bilty", "link_fieldname": "transport_trip"},
-  {"link_doctype": "Fuel Authorization", "link_fieldname": "trip"}
- ],
+ "links": [],
  "modified": "2026-08-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Goods Transport",

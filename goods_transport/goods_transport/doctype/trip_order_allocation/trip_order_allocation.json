@@ -1,0 +1,13 @@
+{
+ "doctype": "DocType",
+ "name": "Trip Order Allocation",
+ "module": "Goods Transport",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": ["transport_order", "quantity"],
+ "fields": [
+  {"fieldname": "transport_order", "fieldtype": "Link", "label": "Transport Order", "options": "Transport Order", "in_list_view": 1, "reqd": 1},
+  {"fieldname": "quantity", "fieldtype": "Float", "label": "Quantity Allocated", "in_list_view": 1, "non_negative": 1}
+ ],
+ "permissions": []
+}

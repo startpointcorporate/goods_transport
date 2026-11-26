@@ -202,17 +202,12 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 		gross, category = vehicle_limits(spec | {"cemac": vehicle.get("custom_truck_cemac")}, cargo_kg, cargo_m3, axles)
 	except ValueError as error:
 		frappe.throw(str(error))
+	from .toll_routing import location_coordinates
+
 	stops = [name for name in (trip.origin, via, trip.destination) if name]
 	if not trip.origin or not trip.destination or len(stops) != len(set(stops)):
 		frappe.throw("Renseigner les lieux distincts de départ et d’arrivée sur la mission.")
-	points = []
-	for name in stops:
-		location = frappe.get_doc("Transport Location", name)
-		location.check_permission("read")
-		lat, lon = location.latitude, location.longitude
-		if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180) or (lat, lon) == (0, 0):
-			frappe.throw("Coordonnées GPS manquantes ou invalides pour {0}.".format(name))
-		points.append((lon, lat))
+	points = [location_coordinates(name) for name in stops]
 	truck = fetch_route(url, points)
 	car_points = points
 	stations = [

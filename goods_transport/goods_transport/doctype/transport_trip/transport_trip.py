@@ -36,6 +36,8 @@ class TransportTrip(Document):
 	def validate(self):
 		validate_trip_readings(self)
 		reservation_window(self)
+		self._validate_vehicle_company()
+		self._validate_order_allocations()
 		self._default_currency()
 		self._compute_estimated_cost()
 		self._compute_load_from_bilties()
@@ -76,6 +78,30 @@ class TransportTrip(Document):
 		self.db_set("status", "Cancelled")
 
 	# --- helpers ---------------------------------------------------------
+
+	def _validate_vehicle_company(self):
+		if self.vehicle and self.company:
+			company = frappe.db.get_value("Vehicle", self.vehicle, "company")
+			if company and company != self.company:
+				frappe.throw(_("Select a vehicle for the trip company."))
+
+	def _validate_order_allocations(self):
+		orders = set()
+		planned_weight = 0
+		for row in self.order_allocations:
+			order = frappe.get_doc("Transport Order", row.transport_order)
+			order.check_permission("read")
+			if order.docstatus != 1 or order.company != self.company:
+				frappe.throw(_("Select a submitted order for the trip company."))
+			if row.transport_order in orders:
+				frappe.throw(_("Order {0} is already allocated on this trip.").format(order.name))
+			if flt(row.quantity) > flt(order.quantity):
+				frappe.throw(_("Allocated quantity exceeds the quantity on order {0}.").format(order.name))
+			orders.add(order.name)
+			if order.quantity:
+				planned_weight += flt(order.weight) * flt(row.quantity) / flt(order.quantity)
+		if orders:
+			self.planned_cargo_weight = planned_weight
 
 	def _default_currency(self):
 		if not self.currency and self.company:

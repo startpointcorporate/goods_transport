@@ -15,7 +15,7 @@ frappe.ui.form.on("Transport Order", {
 					fields: [
 						{ fieldname: "origin", label: __("Départ"), fieldtype: "Link",
 							options: "Transport Location", default: frm.doc.origin, reqd: 1 },
-						{ fieldname: "via", label: __("Étape"), fieldtype: "Link", options: "Transport Location" },
+						{ fieldname: "via", label: __("Étape"), fieldtype: "Link", options: "Transport Location", default: frm.doc.via },
 						{ fieldname: "destination", label: __("Arrivée"), fieldtype: "Link",
 							options: "Transport Location", default: frm.doc.destination, reqd: 1 },
 					],
@@ -25,6 +25,12 @@ frappe.ui.form.on("Transport Order", {
 							method: "goods_transport.goods_transport.services.toll_routing.preview_route",
 							args: values, freeze: true,
 						});
+						if (frm.doc.docstatus === 0 && values.origin === frm.doc.origin && values.destination === frm.doc.destination) {
+							await frm.set_value({
+								via: values.via || null,
+								estimated_distance: message.distance_m / 1000,
+							});
+						}
 						await frappe.require("/assets/goods_transport/js/toll_map.js");
 						dialog.hide();
 						await goods_transport.toll_map.show(message);
@@ -33,7 +39,9 @@ frappe.ui.form.on("Transport Order", {
 				dialog.show();
 			});
 		}
-		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled") {
+		if (frm.doc.docstatus === 1 && ["Confirmed", "Partially Dispatched", "Fully Dispatched"].includes(frm.doc.status)
+			&& (!frm.doc.dispatched_quantity || frm.doc.remaining_quantity > 0)
+			&& frappe.model.can_create("Transport Trip")) {
 			frm.add_custom_button(
 				__("Transport Trip"),
 				() => {
@@ -45,13 +53,15 @@ frappe.ui.form.on("Transport Order", {
 								fieldname: "vehicle",
 								fieldtype: "Link",
 								options: "Vehicle",
+								get_query: () => ({ filters: { company: frm.doc.company } }),
 								reqd: 1,
 							},
 							{
 								label: __("Quantity Allocated"),
 								fieldname: "quantity",
 								fieldtype: "Float",
-								description: __("Informational; used later by Bilties created under this Trip."),
+								default: Math.max(0, frm.doc.quantity - (frm.doc.dispatched_quantity || 0)) || undefined,
+								description: __("Leave blank to use the remaining dispatchable quantity."),
 							},
 						],
 						primary_action_label: __("Create Trip"),
@@ -61,7 +71,7 @@ frappe.ui.form.on("Transport Order", {
 								args: {
 									transport_order: frm.doc.name,
 									vehicle: values.vehicle,
-									quantity: values.quantity,
+									quantity: values.quantity || undefined,
 								},
 								freeze: true,
 								callback: (r) => {
@@ -78,12 +88,19 @@ frappe.ui.form.on("Transport Order", {
 				__("Create"),
 			);
 		}
-		if (frm.doc.docstatus === 1) {
-			frm.add_custom_button(
-				__("Bilties under this Order"),
-				() => frappe.set_route("List", "Bilty", { transport_order: frm.doc.name }),
-				__("View"),
-			);
+
+		if (!frm.is_new() && frappe.model.can_read("Transport Trip")) {
+			frm.add_custom_button(__("Transport Trip"), async () => {
+				const names = await frappe.xcall(
+					"goods_transport.goods_transport.services.operations.get_order_trips", { transport_order: frm.doc.name },
+				);
+				if (!names.length) {
+					frappe.msgprint(__("No missions are linked to this order."));
+					return;
+				}
+				if (names.length === 1) frappe.set_route("Form", "Transport Trip", names[0]);
+				else frappe.set_route("List", "Transport Trip", { name: ["in", names] });
+			}, __("Related Documents"));
 		}
 	},
 });

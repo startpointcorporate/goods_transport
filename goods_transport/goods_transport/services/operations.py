@@ -8,31 +8,45 @@ import frappe
 from frappe import _
 from frappe.utils import flt, today
 
+from goods_transport.goods_transport.services.freight import CARGO_BASES, billable_quantity
 
-@frappe.whitelist()
+
+@frappe.whitelist(methods=["POST"])
 def create_trip_from_order(transport_order: str, vehicle: str, quantity: float | None = None) -> str:
 	"""Create a draft Transport Trip prefilled from the given Transport Order.
 
-	The Trip itself has no direct link to the Order — the relationship is
-	established when Bilties are created under the Trip referencing the Order.
+	Allocations can associate several orders with a trip and an order can
+	be allocated across several trips.
 	"""
 	order = frappe.get_doc("Transport Order", transport_order)
 	order.check_permission("read")
 	if order.docstatus != 1:
 		frappe.throw(_("Transport Order {0} must be submitted first.").format(order.name))
 
+	assigned = frappe.get_doc("Vehicle", vehicle)
+	assigned.check_permission("read")
+	if assigned.company and assigned.company != order.company:
+		frappe.throw(_("Select a vehicle for the order company."))
+
 	trip = frappe.new_doc("Transport Trip")
 	trip.company = order.company
-	trip.trip_date = today()
+	trip.trip_date = order.expected_loading_date or today()
 	trip.vehicle = vehicle
+	trip.driver = assigned.default_driver
 	trip.origin = order.origin
 	trip.destination = order.destination
 	trip.currency = order.currency
+	trip.via = order.via
+	trip.planned_distance = order.estimated_distance
+	allocated = flt(quantity) if quantity is not None else order.available_to_dispatch()
+	if not 0 < allocated <= order.available_to_dispatch():
+		frappe.throw(_("Allocate a quantity within the remaining dispatchable quantity."))
+	trip.append("order_allocations", {"transport_order": order.name, "quantity": allocated})
 	trip.insert(ignore_permissions=False)
 	return trip.name
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_bilty_from_trip(
 	transport_trip: str,
 	customer: str,
@@ -50,8 +64,8 @@ def create_bilty_from_trip(
 	if transport_order:
 		order = frappe.get_doc("Transport Order", transport_order)
 		order.check_permission("read")
-	if trip.docstatus == 2:
-		frappe.throw(_("Cannot create Bilty against a cancelled Trip."))
+	if trip.docstatus == 2 or trip.status == "Closed":
+		frappe.throw(_("Cannot create Bilty against a cancelled or closed Trip."))
 
 	bilty = frappe.new_doc("Bilty")
 	bilty.company = trip.company
@@ -59,26 +73,39 @@ def create_bilty_from_trip(
 	bilty.customer = customer
 	bilty.transport_trip = trip.name
 	bilty.transport_order = transport_order
-	bilty.origin = trip.origin
-	bilty.destination = trip.destination
+	bilty.origin = order.origin if order else trip.origin
+	bilty.destination = order.destination if order else trip.destination
 	bilty.vehicle = trip.vehicle
 	bilty.driver = trip.driver
 	bilty.transporter = trip.transporter
-	bilty.currency = trip.currency
+	bilty.currency = order.currency if order else trip.currency
 
 	# Freight item: use the explicit param, else fall back to Trip.freight_item
 	# (Trip owns the SI freight service for all bilties on its journey).
 	bilty.freight_item = freight_item or trip.freight_item
 
-	# Commercial terms: if the caller (dialog/API) didn't pass a rate or
-	# rate_basis and a Transport Order is linked, pull them from the Order.
-	# The JS dialog already prefills these on order-change; this path covers
-	# scripted/API callers that skip the dialog.
 	if order:
-		if rate is None and order.rate:
-			rate = order.rate
-		if rate_basis is None and order.rate_basis:
-			rate_basis = order.rate_basis
+		rate = order.rate if rate is None else rate
+		rate_basis = rate_basis or order.rate_basis
+		remaining = order.available_to_dispatch()
+		allocation = next((row for row in trip.order_allocations if row.transport_order == order.name), None)
+		cargo_quantity = min(flt(allocation.quantity), remaining) if allocation else remaining
+		if cargo_quantity <= 0:
+			frappe.throw(_("The linked order has no quantity available for dispatch."))
+		full_cargo = cargo_quantity == flt(order.quantity)
+		ratio = cargo_quantity / flt(order.quantity) if order.quantity else 0
+		if order.commodity:
+			bilty.append("items", {
+				"item": order.commodity, "quantity": cargo_quantity, "uom": order.uom,
+				"description": order.description, "gross_weight": flt(order.weight) * ratio,
+				"packages": order.package_count if full_cargo else None,
+			})
+		if freight_quantity is None:
+			bilty.bill_from_cargo = bool(bilty.items) and rate_basis in CARGO_BASES
+			freight_quantity = billable_quantity(
+				rate_basis, weight_kg=flt(order.weight) * ratio,
+				packages=order.package_count if full_cargo else 0, distance_km=order.estimated_distance,
+			)
 
 	if rate is not None:
 		bilty.rate = flt(rate)
@@ -91,10 +118,10 @@ def create_bilty_from_trip(
 	return bilty.name
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_pod_from_bilty(bilty: str, delivered_quantity: float, receiver_name: str) -> str:
 	"""Convenience: create+submit a POD in one call from a Bilty form action."""
-	source = frappe.get_doc("Bilty", bilty)
+	source = frappe.get_doc("Bilty", bilty, for_update=True)
 	source.check_permission("read")
 	if source.docstatus != 1:
 		frappe.throw(_("Bilty must be submitted before recording POD."))
@@ -109,6 +136,23 @@ def create_pod_from_bilty(bilty: str, delivered_quantity: float, receiver_name: 
 	pod.insert()
 	pod.submit()
 	return pod.name
+
+
+@frappe.whitelist()
+def get_order_trips(transport_order: str):
+	order = frappe.get_doc("Transport Order", transport_order)
+	order.check_permission("read")
+	if not frappe.has_permission("Transport Trip", "read"):
+		return []
+	allocated = frappe.get_list(
+		"Transport Trip", filters=[["Trip Order Allocation", "transport_order", "=", order.name]],
+		pluck="name", limit_page_length=0, distinct=True,
+	)
+	if frappe.has_permission("Bilty", "read"):
+		allocated.extend(row.transport_trip for row in get_order_bilties(order.name) if row.transport_trip)
+	return frappe.get_list(
+		"Transport Trip", filters={"name": ["in", list(set(allocated))]}, pluck="name", limit_page_length=0,
+	) if allocated else []
 
 
 @frappe.whitelist()
@@ -188,6 +232,24 @@ def create_transporter_purchase_invoice(
 	pi.insert()
 	trip.db_set("purchase_invoice", pi.name)
 	return pi.name
+
+
+@frappe.whitelist()
+def get_trip_orders(transport_trip: str):
+	trip = frappe.get_doc("Transport Trip", transport_trip)
+	trip.check_permission("read")
+	if not frappe.has_permission("Transport Order", "read"):
+		return []
+	names = {row.transport_order for row in trip.order_allocations}
+	if frappe.has_permission("Bilty", "read"):
+		names.update(frappe.get_list(
+			"Bilty", filters={"transport_trip": trip.name, "docstatus": ["!=", 2]},
+			pluck="transport_order", limit_page_length=0,
+		))
+	names.discard(None)
+	return frappe.get_list(
+		"Transport Order", filters={"name": ["in", sorted(names)]}, pluck="name", limit_page_length=0,
+	) if names else []
 
 
 @frappe.whitelist()

@@ -1,5 +1,6 @@
 frappe.ui.form.on("Trip Expense", {
 	setup(frm) {
+		frm.set_query("trip_advance", () => ({ filters: { trip: frm.doc.trip, docstatus: 1 } }));
 		// Only active expense types appear in the picker.
 		frm.set_query("expense_type", () => ({
 			filters: { is_active: 1 },

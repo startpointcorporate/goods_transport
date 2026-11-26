@@ -10,10 +10,26 @@ const TRIP_STATUSES = [
 	"Closed",
 ];
 
-const PENDING_ORDER_STATUSES = ["Confirmed", "Partially Dispatched"];
+const FINANCE_DOCUMENTS = [
+	"Sales Invoice", "Payment Entry", "Trip Advance", "Trip Expense", "Trip Settlement",
+	"Fuel Authorization", "Fuel Contract Reserve",
+];
+
+const PENDING_ORDER_STATUSES = ["Confirmed", "Partially Dispatched", "Fully Dispatched"];
 
 frappe.ui.form.on("Transport Trip", {
 	setup(frm) {
+		// Use the creation actions with their status checks and defaults.
+		frm.can_make_methods = {
+			...frm.can_make_methods,
+			...Object.fromEntries([
+				"Bilty", "Trip Advance", "Trip Expense", "Trip Settlement",
+				"Fuel Authorization", "Vehicle Immobilisation", "Trip Vehicle Inspection", "Driver Trip Earning",
+			].map((doctype) => [doctype, () => false])),
+		};
+		frm.set_query("transport_order", "order_allocations", () => ({
+			filters: { company: frm.doc.company, docstatus: 1 },
+		}));
 		// Trip's freight_item is the SI freight line item for every Bilty on
 		// this trip. Filter to the seeded Freight Services group.
 		frm.set_query("freight_item", () => ({
@@ -21,24 +37,38 @@ frappe.ui.form.on("Transport Trip", {
 		}));
 	},
 	refresh(frm) {
-		if (frappe.boot.goods_transport_trip_finance && !frm.is_new()) {
+		const canWrite = frm.perm[0]?.write;
+		const active = frm.doc.docstatus === 1 && !["Settled", "Closed", "Cancelled"].includes(frm.doc.status);
+		if (frappe.boot.goods_transport_trip_finance && !frm.is_new()
+			&& FINANCE_DOCUMENTS.every((doctype) => frappe.model.can_read(doctype))) {
 			frm.add_custom_button(__("Contrôle financier"), async () => {
 				await frappe.require("/assets/goods_transport/js/trip_finance.js");
 				goods_transport.trip_finance.open(frm);
-			});
+			}, __("Finances"));
 		}
-		if (frm.doc.docstatus === 1 && TRIP_STATUSES.indexOf(frm.doc.status) < TRIP_STATUSES.indexOf("Delivered")
+		if (active && TRIP_STATUSES.indexOf(frm.doc.status) < TRIP_STATUSES.indexOf("Delivered")
 			&& frappe.model.can_create("Vehicle Immobilisation")) {
 			frm.add_custom_button(__("Report Breakdown"), () => frappe.new_doc("Vehicle Immobilisation", {
 				vehicle: frm.doc.vehicle, company: frm.doc.company, transport_trip: frm.doc.name, reason: "Breakdown",
-			}), __("Actions"));
+			}), __("Tracking"));
 		}
 
-		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled" && frm.doc.status !== "Closed") {
+		if (active) {
+			const defaults = { trip: frm.doc.name, company: frm.doc.company, currency: frm.doc.currency };
+			for (const doctype of ["Trip Advance", "Trip Expense"]) {
+				if (!frappe.model.can_create(doctype)) continue;
+				frm.add_custom_button(__(doctype), () => frappe.new_doc(doctype, {
+					...defaults, ...(doctype === "Trip Advance" && frm.doc.driver ? { driver: frm.doc.driver } : {}),
+				}), __("Create"));
+			}
+		}
+		if (active && frappe.model.can_create("Bilty")) {
 			frm.add_custom_button(
 				__("Bilty"),
 				() => {
 					let d;
+					const allocations = frm.doc.order_allocations || [];
+					const order = allocations.length === 1 ? allocations[0].transport_order : "";
 					d = new frappe.ui.Dialog({
 						title: __("Create Bilty under {0}", [frm.doc.name]),
 						fields: [
@@ -61,7 +91,7 @@ frappe.ui.form.on("Transport Trip", {
 								fieldtype: "Link",
 								options: "Transport Order",
 								description: __(
-									"Only submitted, still-open orders (Confirmed / Partially Dispatched) for the selected customer are shown.",
+									"Only submitted, still-open orders (Confirmed / Partially Dispatched / Fully Dispatched) for the selected customer are shown.",
 								),
 								get_query: () => {
 									const customer = d.get_value("customer");
@@ -75,22 +105,6 @@ frappe.ui.form.on("Transport Trip", {
 									}
 									return { filters };
 								},
-								onchange: async () => {
-									const order = d.get_value("transport_order");
-									if (!order) return;
-									const r = await frappe.db.get_value(
-										"Transport Order",
-										order,
-										["rate", "rate_basis"],
-									);
-									const vals = (r && r.message) || {};
-									if (vals.rate_basis && !d.get_value("rate_basis")) {
-										d.set_value("rate_basis", vals.rate_basis);
-									}
-									if (vals.rate && !d.get_value("rate")) {
-										d.set_value("rate", vals.rate);
-									}
-								},
 							},
 							{
 								fieldname: "freight_item",
@@ -103,13 +117,13 @@ frappe.ui.form.on("Transport Trip", {
 							},
 							{
 								fieldname: "rate_basis",
+								depends_on: "eval:!doc.transport_order",
 								label: __("Rate Basis"),
 								fieldtype: "Select",
 								options: "Per Trip\nPer Vehicle\nPer Ton\nPer Kg\nPer Package\nPer KM\nFixed",
-								reqd: 1,
 							},
-							{ fieldname: "rate", label: __("Rate"), fieldtype: "Currency", reqd: 1 },
-							{ fieldname: "freight_quantity", label: __("Freight Quantity"), fieldtype: "Float", default: 1 },
+							{ fieldname: "rate", label: __("Rate"), fieldtype: "Currency", depends_on: "eval:!doc.transport_order" },
+							{ fieldname: "freight_quantity", label: __("Freight Quantity"), fieldtype: "Float", default: 1, depends_on: "eval:!doc.transport_order" },
 						],
 						primary_action_label: __("Create Bilty"),
 						primary_action(v) {
@@ -120,9 +134,9 @@ frappe.ui.form.on("Transport Trip", {
 									customer: v.customer,
 									transport_order: v.transport_order,
 									freight_item: v.freight_item,
-									rate: v.rate,
-									rate_basis: v.rate_basis,
-									freight_quantity: v.freight_quantity,
+									...(!v.transport_order && {
+										rate: v.rate, rate_basis: v.rate_basis, freight_quantity: v.freight_quantity,
+									}),
 								},
 								freeze: true,
 								callback: (r) => {
@@ -135,10 +149,21 @@ frappe.ui.form.on("Transport Trip", {
 						},
 					});
 					d.show();
+					if (order && frappe.model.can_read("Transport Order")) {
+						frappe.db.get_value("Transport Order", order, ["customer", "status"]).then(async ({ message }) => {
+							if (!message || !PENDING_ORDER_STATUSES.includes(message.status)
+								|| d.get_value("customer") || d.get_value("transport_order")) return;
+							await d.set_value("customer", message.customer);
+							await d.set_value("transport_order", order);
+						});
+					}
 				},
 				__("Create"),
 			);
+		}
 
+		if (canWrite && frm.doc.docstatus === 1 && (frm.doc.status === "Settled"
+			|| (active && TRIP_STATUSES.indexOf(frm.doc.status) < TRIP_STATUSES.indexOf("Delivered")))) {
 			frm.add_custom_button(
 				__("Advance Status"),
 				() => {
@@ -170,18 +195,11 @@ frappe.ui.form.on("Transport Trip", {
 						__("Advance Trip Status"),
 					);
 				},
-				__("Actions"),
-			);
-		}
-		if (frm.doc.docstatus === 1) {
-			frm.add_custom_button(
-				__("Bilties on this Trip"),
-				() => frappe.set_route("List", "Bilty", { transport_trip: frm.doc.name }),
-				__("View"),
+				__("Tracking"),
 			);
 		}
 		if (
-			frm.doc.docstatus === 1 &&
+			active && canWrite && frappe.model.can_create("Purchase Invoice") &&
 			frm.doc.transporter &&
 			frm.doc.agreed_vehicle_hire > 0 &&
 			!frm.doc.purchase_invoice &&
@@ -223,7 +241,7 @@ frappe.ui.form.on("Transport Trip", {
 			);
 		}
 		if (
-			frm.doc.docstatus === 1 &&
+			active && frappe.model.can_create("Trip Settlement") &&
 			(frm.doc.status === "Delivered" || frm.doc.status === "Arrived" || frm.doc.status === "Unloading") &&
 			!frm.doc.trip_settlement
 		) {
@@ -242,18 +260,24 @@ frappe.ui.form.on("Transport Trip", {
 				__("Create"),
 			);
 		}
-		if (frm.doc.purchase_invoice) {
+		if (!frm.is_new() && frappe.model.can_read("Transport Order")) {
+			frm.add_custom_button(__("Transport Order"), async () => {
+				const names = await frappe.xcall(
+					"goods_transport.goods_transport.services.operations.get_trip_orders", { transport_trip: frm.doc.name },
+				);
+				if (!names.length) {
+					frappe.msgprint(__("No orders are linked to this mission."));
+					return;
+				}
+				if (names.length === 1) frappe.set_route("Form", "Transport Order", names[0]);
+				else frappe.set_route("List", "Transport Order", { name: ["in", names] });
+			}, __("Related Documents"));
+		}
+		if (frm.doc.purchase_invoice && frappe.model.can_read("Purchase Invoice")) {
 			frm.add_custom_button(
 				__("Vehicle Hire PI"),
 				() => frappe.set_route("Form", "Purchase Invoice", frm.doc.purchase_invoice),
-				__("View"),
-			);
-		}
-		if (frm.doc.trip_settlement) {
-			frm.add_custom_button(
-				__("Trip Settlement"),
-				() => frappe.set_route("Form", "Trip Settlement", frm.doc.trip_settlement),
-				__("View"),
+				__("Finances"),
 			);
 		}
 	},
@@ -262,13 +286,13 @@ frappe.ui.form.on("Transport Trip", {
 frappe.ui.form.on("Transport Trip", {
 	refresh(frm) {
 		if (!frm.is_new() && frappe.boot.goods_transport_map_tiles) {
-			frm.add_custom_button(__("View on map"), () => frappe.set_route("fleet-map", frm.doc.name));
+			frm.add_custom_button(__("View on map"), () => frappe.set_route("fleet-map", frm.doc.name), __("Tracking"));
 		}
 		if (frappe.boot.goods_transport_truck_plan && !frm.is_new() && frm.doc.docstatus !== 2 && frm.doc.vehicle) {
 			frm.add_custom_button(__("Plan de route poids lourd"), async () => {
 				await frappe.require("/assets/goods_transport/js/truck_plan.js");
 				goods_transport.truck_plan.open(frm);
-			});
+			}, __("Planning"));
 		}
 	},
 });
@@ -276,10 +300,14 @@ frappe.ui.form.on("Transport Trip", {
 frappe.ui.form.on("Transport Trip", {
 	refresh(frm) {
 		if (!frappe.boot.goods_transport_partner_fuel || frm.is_new()) return;
-		frm.add_custom_button(__("Autorisations"), () => frappe.set_route("List", "Fuel Authorization", {
-			trip: frm.doc.name,
-		}), __("Carburant"));
-		if (frm.doc.docstatus === 2 || !frm.doc.vehicle || !frm.doc.driver || !frm.perm[0]?.write) return;
+		if (frappe.model.can_read("Fuel Authorization")) {
+			frm.add_custom_button(__("Autorisations"), () => frappe.set_route("List", "Fuel Authorization", {
+				trip: frm.doc.name,
+			}), __("Carburant"));
+		}
+		if (frm.doc.docstatus === 2 || !frm.doc.vehicle || !frm.doc.driver || !frm.perm[0]?.write
+			|| !frappe.model.can_read("Fuel Contract Reserve") || !frappe.model.can_read("Fuel Partner Station")
+			|| ["Settled", "Closed", "Cancelled"].includes(frm.doc.status)) return;
 		frm.add_custom_button(__("Autoriser un retrait"), () => frappe.prompt([
 			{ fieldname: "reserve_name", label: __("Réserve contractuelle"), fieldtype: "Link",
 				options: "Fuel Contract Reserve", reqd: 1, default: frm.doc.fuel_stop_reserve,
@@ -301,7 +329,8 @@ frappe.ui.form.on("Transport Trip", {
 frappe.ui.form.on("Transport Trip", {
 	refresh(frm) {
 		if (!frappe.boot.goods_transport_partner_fuel || frm.is_new() || !frm.perm[0]?.write
-			|| frm.doc.docstatus === 2) return;
+			|| frm.doc.docstatus === 2 || ["Settled", "Closed", "Cancelled"].includes(frm.doc.status)
+			|| !frappe.model.can_read("Fuel Contract Reserve") || !frappe.model.can_read("Fuel Partner Station")) return;
 		const plan = JSON.parse(frm.doc.fuel_plan_inputs || "{}");
 		if (!plan.signature || !plan.selected_reserves?.length || plan.authorization_codes) return;
 		frm.add_custom_button(__("Autoriser les arrêts du plan"), () => frappe.prompt([
@@ -536,15 +565,21 @@ frappe.ui.form.on("Transport Trip", {
 
 	frappe.ui.form.on("Transport Trip", {
 		refresh(frm) {
-			if (frm.doc.docstatus !== 1 || !frm.doc.inspection_policy) return;
-			for (const [phase, title] of [["Departure", __("Departure Inspection")], ["Return", __("Return Inspection")]]) {
+			if (frm.doc.docstatus !== 1 || !frm.doc.inspection_policy
+				|| !frappe.model.can_read("Trip Vehicle Inspection")) return;
+			const inspectionPhases = [
+				["Departure", __("Departure Inspection"), TRIP_STATUSES.slice(0, 3)],
+				["Return", __("Return Inspection"), ["Delivered", "Settled"]],
+			];
+			for (const [phase, title, statuses] of inspectionPhases) {
+				if (!frm.perm[0]?.write || !statuses.includes(frm.doc.status)) continue;
 				frm.add_custom_button(title, async () => showInspection(
 					await call("open_inspection", {trip: frm.doc.name, phase}), title
-				));
+				), __("Inspections"));
 			}
 			frm.add_custom_button(__("Compare Vehicle Inspections"), async () => showComparison(
 				await call("compare", {trip: frm.doc.name})
-			));
+			), __("Inspections"));
 		},
 	});
 })();

@@ -2911,3 +2911,63 @@ msgstr "Itinéraire indisponible. Vérifiez les coordonnées et le plan de route
 
 msgid "Truck route (solid) · Car route (dashed)"
 msgstr "Poids lourd (trait continu) · Voiture (pointillés)"
+
+msgid "Settled"
+msgstr "Réglé"
+
+msgid "Planning"
+msgstr "Planification"
+
+msgid "Tracking"
+msgstr "Suivi"
+
+msgid "Inspections"
+msgstr "Inspections"
+
+msgid "Fuel"
+msgstr "Carburant"
+
+msgid "Finances"
+msgstr "Finances"
+
+msgid "Related Documents"
+msgstr "Documents associés"
+
+msgid "Order Allocations"
+msgstr "Répartition des commandes"
+
+msgid "Billable Quantity"
+msgstr "Quantité facturable"
+
+msgid "Number of Vehicles"
+msgstr "Nombre de véhicules"
+
+msgid "Estimated Distance (km)"
+msgstr "Distance estimée (km)"
+
+msgid "Planned Cargo Weight (kg)"
+msgstr "Poids de chargement prévu (kg)"
+
+msgid "Intermediate Stop"
+msgstr "Étape intermédiaire"
+
+msgid "Weight (kg)"
+msgstr "Poids (kg)"
+
+msgid "Fixed"
+msgstr "Forfait"
+
+msgid "Use Cargo for Billing"
+msgstr "Facturer d’après la marchandise"
+
+msgid "Leave blank to use the remaining dispatchable quantity."
+msgstr "Laissez vide pour utiliser la quantité restant à expédier."
+
+msgid "No missions are linked to this order."
+msgstr "Aucune mission n’est liée à cette commande."
+
+msgid "Allocate a quantity within the remaining dispatchable quantity."
+msgstr "Affectez une quantité positive dans la limite du reliquat à expédier."
+
+msgid "No orders are linked to this mission."
+msgstr "Aucune commande n’est liée à cette mission."

@@ -4,6 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from goods_transport.goods_transport.services.cargo import validate_cargo_item
+from goods_transport.goods_transport.services.freight import billable_quantity
 
 
 class TransportOrder(Document):
@@ -39,7 +40,11 @@ class TransportOrder(Document):
 			self.currency = frappe.get_cached_value("Company", self.company, "default_currency")
 
 	def _compute_estimated_totals(self):
-		self.estimated_freight = flt(self.rate) * flt(self.quantity)
+		self.billable_quantity = billable_quantity(
+			self.rate_basis, weight_kg=self.weight, packages=self.package_count,
+			distance_km=self.estimated_distance, vehicles=self.vehicle_count or 1,
+		)
+		self.estimated_freight = flt(self.rate) * self.billable_quantity
 		self.grand_total = flt(self.estimated_freight) + flt(self.additional_charges)
 
 	def _set_status_draft_time(self):
@@ -50,20 +55,33 @@ class TransportOrder(Document):
 
 	# --- called by Bilty controller and POD controller -------------------
 
-	def refresh_progress(self):
-		"""Recompute dispatched/delivered/remaining/billed from linked Bilties."""
-		rows = frappe.db.sql(
-			"""
+	def _dispatch_rows(self, excluded_bilty=None, *, for_update=False):
+		lock = "FOR UPDATE" if for_update else ""
+		return frappe.db.sql(
+			f"""
 			SELECT b.total_quantity, b.grand_total, b.pod_required, b.sales_invoice,
 			       b.status, p.delivered_quantity, t.status AS trip_status
 			FROM `tabBilty` b
 			LEFT JOIN `tabProof of Delivery` p ON p.bilty = b.name AND p.docstatus = 1
 			LEFT JOIN `tabTransport Trip` t ON t.name = b.transport_trip AND t.docstatus = 1
-			WHERE b.transport_order = %s AND b.docstatus = 1
+			WHERE b.transport_order = %s AND b.docstatus = 1 AND b.name != %s
+			{lock}
 			""",
-			(self.name,),
+			(self.name, excluded_bilty or ""),
 			as_dict=1,
 		)
+
+	def available_to_dispatch(self, excluded_bilty=None, *, for_update=False):
+		committed = sum(
+			flt(row.total_quantity) if row.delivered_quantity is None
+			else min(flt(row.total_quantity), max(flt(row.delivered_quantity), 0))
+			for row in self._dispatch_rows(excluded_bilty, for_update=for_update)
+		)
+		return max(flt(self.quantity) - committed, 0)
+
+	def refresh_progress(self):
+		"""Recompute dispatched/delivered/remaining/billed from linked Bilties."""
+		rows = self._dispatch_rows()
 		dispatched = sum(flt(r.total_quantity) for r in rows)
 		delivered = sum(
 			min(max(flt(r.delivered_quantity), 0), flt(r.total_quantity))
