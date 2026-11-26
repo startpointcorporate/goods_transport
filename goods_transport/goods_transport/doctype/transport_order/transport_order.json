@@ -39,6 +39,7 @@
   "quantity",
   "uom",
   "weight",
+  "cargo_volume",
   "package_count",
   "rate_section",
   "rate_basis",
@@ -61,6 +62,7 @@
   "remarks"
  ],
  "fields": [
+  {"fieldname": "cargo_volume", "fieldtype": "Float", "label": "Total Cargo Volume (m³)", "non_negative": 1},
   {
    "default": "TO-.YYYY.-.#####",
    "fieldname": "naming_series",

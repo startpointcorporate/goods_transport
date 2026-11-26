@@ -2971,3 +2971,42 @@ msgstr "Affectez une quantité positive dans la limite du reliquat à expédier.
 
 msgid "No orders are linked to this mission."
 msgstr "Aucune commande n’est liée à cette mission."
+
+msgid "Total Cargo Volume (m³)"
+msgstr "Volume total de marchandise (m³)"
+
+msgid "Cargo Volume (m³)"
+msgstr "Volume de marchandise (m³)"
+
+msgid "Planned Cargo Volume (m³)"
+msgstr "Volume prévu de marchandise (m³)"
+
+msgid "Loaded Cargo Volume (m³)"
+msgstr "Volume chargé de marchandise (m³)"
+
+msgid "Volume Utilization (%)"
+msgstr "Taux d’utilisation volumétrique (%)"
+
+msgid "Allocated Weight (kg)"
+msgstr "Poids affecté (kg)"
+
+msgid "Allocated Volume (m³)"
+msgstr "Volume affecté (m³)"
+
+msgid "Allocate a positive quantity within the quantity on order {0}."
+msgstr "Affectez une quantité positive dans la limite de la quantité de la commande {0}."
+
+msgid "Declared weight {0} kg conflicts with the quantity converted to {1} kg."
+msgstr "Le poids déclaré de {0} kg est incohérent avec la quantité convertie en {1} kg."
+
+msgid "A positive cargo weight in kilograms is required for weight-based pricing."
+msgstr "La tarification au poids exige un poids de marchandise positif en kilogrammes."
+
+msgid "Planned volume is below the load recorded on the trip."
+msgstr "Le volume prévu est inférieur au chargement enregistré dans la mission."
+
+msgid "Enter the departure fuel level to plan refuelling."
+msgstr "Renseignez le niveau de carburant au départ pour planifier le ravitaillement."
+
+msgid "Cargo volume is unknown. Volumetric compliance has not been verified."
+msgstr "Volume de marchandise inconnu. La conformité volumétrique n’a pas été vérifiée."

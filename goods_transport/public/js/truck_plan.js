@@ -8,8 +8,8 @@ goods_transport.truck_plan.open = function (frm) {
 			{ fieldname: "vehicle", label: __("Camion"), fieldtype: "Data", read_only: 1, default: frm.doc.vehicle },
 			{ fieldname: "via", label: __("Étape intermédiaire"), fieldtype: "Link", options: "Transport Location", default: saved.via ?? frm.doc.via },
 			{ fieldname: "cargo_kg", label: __("Charge prévue (kg)"), fieldtype: "Float", reqd: 1,
-				default: saved.cargo_kg ?? (frm.doc.loaded_weight || frm.doc.planned_cargo_weight || 0) },
-			{ fieldname: "cargo_m3", label: __("Volume prévu (m³)"), fieldtype: "Float", reqd: 1, default: saved.cargo_m3 },
+				default: saved.cargo_kg ?? (frm.doc.planned_cargo_weight || frm.doc.loaded_weight || undefined) },
+			{ fieldname: "cargo_m3", label: __("Volume prévu (m³)"), fieldtype: "Float", default: saved.cargo_m3 ?? (frm.doc.planned_cargo_volume || undefined) },
 			{ fieldname: "axle_loads", label: __("Charges par groupe d’essieux (kg)"), fieldtype: "Data", default: saved.axle_loads,
 				description: __("Dans l’ordre du véhicule, séparées par un point-virgule. Facultatif.") },
 			...(frappe.boot.goods_transport_partner_fuel ? [{
@@ -20,11 +20,14 @@ goods_transport.truck_plan.open = function (frm) {
 		],
 		primary_action_label: __("Calculer le plan"),
 		async primary_action(values) {
-			const args = { trip_name: frm.doc.name, ...values };
-			const fuelInput = dialog.fields_dict.departure_liters?.$input;
-			if (!fuelInput || fuelInput.val().trim() === "") delete args.departure_liters;
+			const { vehicle, ...inputs } = values;
+			const args = { trip_name: frm.doc.name, ...inputs };
+			for (const key of ["cargo_m3", "departure_liters"]) {
+				const input = dialog.fields_dict[key]?.$input;
+				if (!input || input.val().trim() === "") delete args[key];
+			}
 			const inputsMatch = ["cargo_kg", "cargo_m3", "departure_liters", "via", "axle_loads"].every(
-				(key) => String(saved[key] ?? "") === String(values[key] ?? ""));
+				(key) => String(saved[key] ?? "") === String(args[key] ?? ""));
 			if ("departure_liters" in args && inputsMatch && frm.doc.fuel_stop_reserve && !saved.authorization_codes) {
 				args.selected_reserves = saved.selected_reserves || [frm.doc.fuel_stop_reserve];
 			}
@@ -56,6 +59,8 @@ goods_transport.truck_plan.show = function (plan, frm, args) {
 	])).appendTo(body);
 	$("<p>").text(__("Classe LCR {0} · Poids total en charge {1} kg", [plan.class, plan.gross_kg])).appendTo(body);
 	$("<p>").text(__("Itinéraire indicatif. Confirmer les restrictions locales et passer par les postes de pesage.")).appendTo(body);
+	if (!plan.volume_checked) $("<p>").addClass("text-warning")
+		.text(__("Cargo volume is unknown. Volumetric compliance has not been verified.")).appendTo(body);
 	if (!plan.axle_loads_entered) $("<p>").text(__("Charges aux essieux à vérifier.")).appendTo(body);
 	const canvas = $("<div>").css({ height: "340px", background: "#edf2f6" }).appendTo(body);
 	$("<p>").addClass("mt-2").text(__("Bleu · poids lourd / Gris pointillé · voiture")).appendTo(body);

@@ -71,7 +71,7 @@ try {
 	await fields({
 		company: fixture.company, customer: fixture.customer, currency: "EUR", origin: fixture.origin,
 		destination: fixture.destination, via: fixture.via, commodity: fixture.cargo,
-		uom: "Kg", quantity: 8, weight: 2400, rate_basis: "Per Trip", rate: 450000, pod_required: 1,
+		uom: "Kg", quantity: 8, cargo_volume: 12, rate_basis: "Per Trip", rate: 450000, pod_required: 1,
 	});
 	await button("Itinéraire et péages").click();
 	await modal().getByRole("button", { name: "Calculer", exact: true }).click();
@@ -96,15 +96,35 @@ try {
 	await group("Planning", "Plan de route poids lourd");
 	await modal().getByRole("button", { name: "Calculer le plan", exact: true }).waitFor();
 	await page.waitForFunction(() => !!window.cur_dialog);
-	assert.deepEqual(await page.evaluate(() => [cur_dialog.get_value("via"), cur_dialog.get_value("cargo_kg")]),
-		[fixture.via, 2400]);
-	await dialogValues({ cargo_m3: 12, departure_liters: 5 });
+	assert.deepEqual(await page.evaluate(() => ["vehicle", "via", "cargo_kg", "cargo_m3"].map(
+		(field) => cur_dialog.get_value(field))), [fixture.vehicle, fixture.via, 8, 12]);
+	await modal().getByRole("button", { name: "Calculer le plan", exact: true }).click();
+	await modal().getByText(/Classe LCR 3b/).waitFor();
+	await modal().getByText(fixture.toll, { exact: false }).first().waitFor();
+	assert.equal(await modal().locator("[data-fuel-stops]").count(), 0);
+	await closeModal();
+
+	await group("Planning", "Plan de route poids lourd");
+	await modal().locator('[data-fieldname="cargo_m3"] input').fill("");
+	await modal().getByRole("button", { name: "Calculer le plan", exact: true }).click();
+	await modal().getByText("Cargo volume is unknown. Volumetric compliance has not been verified.").waitFor();
+	await closeModal();
+
+	await group("Planning", "Plan de route poids lourd");
+	await dialogValues({ departure_liters: 5 });
 	await modal().getByRole("button", { name: "Calculer le plan", exact: true }).click();
 	await modal().getByText(/Classe LCR 3b/).waitFor();
 	await modal().getByText(fixture.toll, { exact: false }).first().waitFor();
 	await modal().locator("[data-fuel-stops] li").first().waitFor();
 	await modal().getByRole("button", { name: "Enregistrer le plan", exact: true }).click();
 	await page.waitForFunction(() => !!cur_frm.doc.fuel_stop_reserve);
+	await group("Planning", "Plan de route poids lourd");
+	await page.waitForFunction(() => window.cur_dialog?.get_value("departure_liters") === 5);
+	assert.deepEqual(await page.evaluate(() => ["cargo_m3", "departure_liters"].map(
+		(field) => cur_dialog.get_value(field))), [12, 5]);
+	await modal().getByRole("button", { name: "Calculer le plan", exact: true }).click();
+	await modal().locator("[data-fuel-stops] li").first().waitFor();
+	await closeModal();
 	await group("Carburant", "Autoriser les arrêts du plan");
 	const validUntil = await page.evaluate(() => frappe.datetime.add_days(frappe.datetime.now_date(), 1) + " 23:59:00");
 	await dialogValues({ valid_until: validUntil });

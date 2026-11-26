@@ -30,9 +30,9 @@ def vehicle_limits(vehicle, cargo_kg, cargo_m3, axle_group_loads):
 	gross = vehicle["tare"] + cargo_kg
 	if not all(isfinite(vehicle[key]) and vehicle[key] > 0 for key in ("tare", "ptac", "height", "width", "length", "axles", "payload", "volume")):
 		raise ValueError("Renseigner la tare, le PTAC/PTRA, les dimensions, les essieux et les capacités du camion.")
-	if not all(isfinite(value) and value >= 0 for value in (cargo_kg, cargo_m3)):
+	if not isfinite(cargo_kg) or cargo_kg < 0 or (cargo_m3 is not None and (not isfinite(cargo_m3) or cargo_m3 < 0)):
 		raise ValueError("Le poids et le volume déclarés doivent être positifs ou nuls.")
-	if cargo_kg > vehicle["payload"] or cargo_m3 > vehicle["volume"]:
+	if cargo_kg > vehicle["payload"] or (cargo_m3 is not None and cargo_m3 > vehicle["volume"]):
 		raise ValueError("Le chargement dépasse la capacité du camion.")
 	max_gross, group_limits = CEMAC.get(vehicle.get("cemac"), (None, ()))
 	if max_gross is None or gross > min(vehicle["ptac"], max_gross):
@@ -171,7 +171,7 @@ def parse_reserves(value):
 
 
 @frappe.whitelist()
-def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = None, axle_loads: str = "",
+def preview(trip_name: str, cargo_kg: float, cargo_m3: float | None = None, via: str | None = None, axle_loads: str = "",
 		departure_liters: float | None = None, selected_reserve: str | None = None,
 		selected_reserves: str | list[str] | None = None, confirmed: bool = False):
 	"""Use persisted trip, vehicle and station records, subject to their Desk permissions."""
@@ -199,7 +199,10 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 		axles = [float(load.strip()) for load in axle_loads.split(";")] if axle_loads.strip() else []
 		if cargo_kg < (trip.loaded_weight or 0):
 			raise ValueError("Le poids prévu est inférieur au chargement enregistré dans la mission.")
-		gross, category = vehicle_limits(spec | {"cemac": vehicle.get("custom_truck_cemac")}, cargo_kg, cargo_m3, axles)
+		loaded_volume = trip.loaded_cargo_volume or 0
+		if cargo_m3 is not None and cargo_m3 < loaded_volume:
+			raise ValueError(frappe._("Planned volume is below the load recorded on the trip."))
+		gross, category = vehicle_limits(spec | {"cemac": vehicle.get("custom_truck_cemac")}, cargo_kg, cargo_m3 if cargo_m3 is not None else loaded_volume or None, axles)
 	except ValueError as error:
 		frappe.throw(str(error))
 	from .toll_routing import location_coordinates
@@ -256,7 +259,7 @@ def preview(trip_name: str, cargo_kg: float, cargo_m3: float, via: str | None = 
 		"truck": truck, "car": car, "tolls": tolls, "class": category, "gross_kg": gross,
 		"known_subtotal": sum(toll["amount"] for toll in tolls if toll["amount"] is not None),
 		"missing_tariffs": sum(toll["amount"] is None for toll in tolls),
-		"axle_loads_entered": bool(axles), "fuel": fuel,
+		"axle_loads_entered": bool(axles), "volume_checked": cargo_m3 is not None, "fuel": fuel,
 	}
 
 
@@ -268,12 +271,14 @@ def plan_signature(trip, args, forecast):
 
 
 @frappe.whitelist(methods=["POST"])
-def save_fuel_plan(trip_name: str, cargo_kg: float, cargo_m3: float, departure_liters: float,
+def save_fuel_plan(trip_name: str, cargo_kg: float, cargo_m3: float | None = None, departure_liters: float | None = None,
 		selected_reserves: str | list[str] | None = None, via: str | None = None, axle_loads: str = ""):
 	trip = frappe.get_doc("Transport Trip", trip_name, for_update=True)
 	trip.check_permission("write")
 	if trip.docstatus == 2 or not frappe.conf.get("goods_transport_partner_fuel"):
 		frappe.throw("La sélection des arrêts carburant est indisponible.")
+	if departure_liters is None:
+		frappe.throw(frappe._("Enter the departure fuel level to plan refuelling."))
 	selected_reserves = parse_reserves(selected_reserves)
 	args = dict(cargo_kg=cargo_kg, cargo_m3=cargo_m3, departure_liters=departure_liters,
 		via=via, axle_loads=axle_loads)

@@ -131,7 +131,8 @@ def render(trip_name: str, language: str, inputs: str, modified: str, pdf: int =
 	settings = loads(inputs)
 	args = {key: settings.get(key) for key in INPUTS}
 	args["cargo_kg"] = float(args.get("cargo_kg") or 0)
-	args["cargo_m3"] = float(args.get("cargo_m3") or 0)
+	if args["cargo_m3"] is not None:
+		args["cargo_m3"] = float(args["cargo_m3"])
 	args["via"] = args.get("via") or None
 	args["axle_loads"] = args.get("axle_loads") or ""
 	if args.get("departure_liters") is not None:
@@ -176,6 +177,7 @@ def render(trip_name: str, language: str, inputs: str, modified: str, pdf: int =
 		"planned_liters": sum(row["planned"] for row in rows) if fuel.get("feasible") else None,
 		"stale": stale, "fuel_checked": bool(fuel), "fuel_feasible": fuel.get("feasible"),
 		"shortfall": (fuel.get("actual_projection") or {}).get("first_shortfall"),
+		"volume_checked": plan["volume_checked"],
 		"axles_checked": plan["axle_loads_entered"], "number": number, "date": date,
 		"generated": now_datetime(), "gps": gps, "pdf": pdf,
 		"download": ENDPOINT + "?" + urlencode({
