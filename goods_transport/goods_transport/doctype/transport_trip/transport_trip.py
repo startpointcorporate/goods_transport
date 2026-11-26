@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from goods_transport.goods_transport.services.cargo_measurements import assigned_measurements
 from goods_transport.goods_transport.services.fleet_availability import reservation_window, validate_assignment
 from goods_transport.goods_transport.services.trip_inspection import (
 	check_departure,
@@ -87,7 +88,7 @@ class TransportTrip(Document):
 
 	def _validate_order_allocations(self):
 		orders = set()
-		planned_weight = 0
+		weights, volumes = [], []
 		for row in self.order_allocations:
 			order = frappe.get_doc("Transport Order", row.transport_order)
 			order.check_permission("read")
@@ -95,13 +96,17 @@ class TransportTrip(Document):
 				frappe.throw(_("Select a submitted order for the trip company."))
 			if row.transport_order in orders:
 				frappe.throw(_("Order {0} is already allocated on this trip.").format(order.name))
-			if flt(row.quantity) > flt(order.quantity):
-				frappe.throw(_("Allocated quantity exceeds the quantity on order {0}.").format(order.name))
+			if not 0 < flt(row.quantity) <= flt(order.quantity):
+				frappe.throw(_("Allocate a positive quantity within the quantity on order {0}.").format(order.name))
 			orders.add(order.name)
-			if order.quantity:
-				planned_weight += flt(order.weight) * flt(row.quantity) / flt(order.quantity)
+			weight, volume = assigned_measurements(order, row.quantity, row)
+			weights.append(weight)
+			volumes.append(volume)
 		if orders:
-			self.planned_cargo_weight = planned_weight
+			self.planned_cargo_weight = sum(weights) if all(weights) else 0
+			self.planned_cargo_volume = sum(volumes) if all(volumes) else 0
+		elif (before := self.get_doc_before_save()) and before.order_allocations:
+			self.planned_cargo_weight = self.planned_cargo_volume = 0
 
 	def _default_currency(self):
 		if not self.currency and self.company:
@@ -115,17 +120,22 @@ class TransportTrip(Document):
 			return
 		rows = frappe.db.sql(
 			"""
-			SELECT COALESCE(SUM(total_gross_weight), 0) AS wt, COUNT(*) AS n
+			SELECT docstatus, total_gross_weight, total_cargo_volume
 			FROM `tabBilty`
 			WHERE transport_trip = %s AND docstatus < 2
+			FOR UPDATE
 			""",
 			(self.name,),
 			as_dict=1,
 		)
-		wt = flt(rows[0].wt) if rows else 0
-		n = int(rows[0].n) if rows else 0
+		issued = [row for row in rows if row.docstatus == 1]
+		wt = sum(flt(row.total_gross_weight) for row in issued)
+		volumes = [flt(row.total_cargo_volume) for row in issued]
+		self.loaded_cargo_volume = sum(volumes) if all(volumes) else 0
+		volume_capacity = flt(frappe.db.get_value("Vehicle", self.vehicle, "volume_capacity")) if self.vehicle else 0
+		self.volume_utilization = 100 * self.loaded_cargo_volume / volume_capacity if volume_capacity else 0
 		self.loaded_weight = wt
-		self.bilty_count = n
+		self.bilty_count = len(rows)
 		if self.vehicle_capacity:
 			self.capacity_utilization = min(wt / flt(self.vehicle_capacity) * 100, 999.99)
 		else:
@@ -184,6 +194,8 @@ class TransportTrip(Document):
 			self.name,
 			{
 				"loaded_weight": self.loaded_weight,
+				"loaded_cargo_volume": self.loaded_cargo_volume,
+				"volume_utilization": self.volume_utilization,
 				"bilty_count": self.bilty_count,
 				"capacity_utilization": self.capacity_utilization,
 			},

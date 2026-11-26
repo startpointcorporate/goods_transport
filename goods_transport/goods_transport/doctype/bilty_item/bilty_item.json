@@ -12,9 +12,11 @@
   "uom",
   "packages",
   "gross_weight",
-  "net_weight"
+  "net_weight",
+  "cargo_volume"
  ],
  "fields": [
+  {"fieldname": "cargo_volume", "fieldtype": "Float", "label": "Cargo Volume (m³)", "non_negative": 1},
   {
    "columns": 2,
    "fieldname": "item",

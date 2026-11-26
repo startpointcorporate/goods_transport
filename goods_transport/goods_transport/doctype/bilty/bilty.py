@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from goods_transport.goods_transport.services.cargo_measurements import WEIGHT_BASES, cargo_weight, require_billable_weight
 from goods_transport.goods_transport.services.cargo import validate_cargo_item
 from goods_transport.goods_transport.services.freight import CARGO_BASES, billable_quantity
 
@@ -30,11 +31,24 @@ class Bilty(Document):
 			validate_cargo_item(row.item, row_idx=row.idx)
 
 	def before_submit(self):
+		for row in self.items or []:
+			if flt(row.quantity) > 0 and self.rate_basis in WEIGHT_BASES:
+				require_billable_weight(self.rate_basis, flt(row.gross_weight))
+		require_billable_weight(self.rate_basis, self.total_gross_weight)
 		self._snapshot_vehicle_plate()
 		if self.transport_order:
 			order = frappe.get_doc("Transport Order", self.transport_order, for_update=True)
 			if flt(self.total_quantity) > order.available_to_dispatch(self.name, for_update=True) + 1e-9:
 				frappe.throw(_("Bilty cargo quantity exceeds the dispatchable quantity on order {0}.").format(order.name))
+
+		self._lock_trip_load()
+
+	def before_cancel(self):
+		self._lock_trip_load()
+
+	def _lock_trip_load(self):
+		if self.transport_trip:
+			frappe.db.get_value("Transport Trip", self.transport_trip, "name", for_update=True)
 
 	def on_submit(self):
 		if self.status == "Draft":
@@ -56,10 +70,7 @@ class Bilty(Document):
 
 	def _notify_parents(self):
 		if self.transport_trip:
-			try:
-				frappe.get_doc("Transport Trip", self.transport_trip).refresh_load()
-			except Exception:
-				frappe.log_error(frappe.get_traceback(), "Bilty parent Trip refresh failed")
+			frappe.get_doc("Transport Trip", self.transport_trip, for_update=True).refresh_load()
 		if self.transport_order:
 			try:
 				frappe.get_doc("Transport Order", self.transport_order).refresh_progress()
@@ -151,7 +162,11 @@ class Bilty(Document):
 	def _compute_item_totals(self):
 		self.total_quantity = sum(flt(r.quantity) for r in (self.items or []))
 		self.total_packages = sum(int(r.packages or 0) for r in (self.items or []))
+		for row in self.items or []:
+			row.gross_weight = cargo_weight(row.quantity, row.uom, row.gross_weight, row.item, validate=True)
 		self.total_gross_weight = sum(flt(r.gross_weight) for r in (self.items or []))
+		volumes = [flt(row.cargo_volume) for row in self.items or []]
+		self.total_cargo_volume = sum(volumes) if all(volumes) else 0
 		self.total_net_weight = sum(flt(r.net_weight) for r in (self.items or []))
 
 	def _compute_charges(self):
@@ -163,7 +178,7 @@ class Bilty(Document):
 		self.additional_charges_total = total_billable
 
 	def _compute_freight_amount(self):
-		if self.bill_from_cargo and self.rate_basis in CARGO_BASES:
+		if self.rate_basis in WEIGHT_BASES or (self.bill_from_cargo and self.rate_basis in CARGO_BASES):
 			self.freight_quantity = billable_quantity(
 				self.rate_basis, weight_kg=self.total_gross_weight, packages=self.total_packages,
 			)

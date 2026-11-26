@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from goods_transport.goods_transport.services.cargo_measurements import cargo_weight, require_billable_weight
 from goods_transport.goods_transport.services.cargo import validate_cargo_item
 from goods_transport.goods_transport.services.freight import billable_quantity
 
@@ -11,6 +12,7 @@ class TransportOrder(Document):
 	def validate(self):
 		self._default_currency()
 		self._validate_commodity_is_cargo()
+		self.weight = cargo_weight(self.quantity, self.uom, self.weight, self.commodity, validate=True)
 		self._compute_estimated_totals()
 		self._set_status_draft_time()
 
@@ -18,6 +20,9 @@ class TransportOrder(Document):
 		# Server-side gate: covers imports, APIs, background jobs — not just the
 		# form. Client-side get_query is a UX hint; this is the enforcement.
 		validate_cargo_item(self.commodity)
+
+	def before_submit(self):
+		require_billable_weight(self.rate_basis, self.weight)
 
 	def on_submit(self):
 		if not self.status or self.status == "Draft":

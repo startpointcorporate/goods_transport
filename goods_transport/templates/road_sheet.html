@@ -122,6 +122,7 @@ nav a { display: inline-block; padding: 2mm 4mm; border: 1px solid #194c6b; bord
 <aside>
 <strong>{{ "Consignes au chauffeur" if fr else "Driver instructions" }}</strong>
 <p>{{ "Itinéraire poids lourd indicatif. Vérifier les restrictions routières locales et passer par les postes de pesage." if fr else "Indicative truck route. Verify local road restrictions and use the required weigh stations." }}</p>
+{% if not volume_checked %}<p>{{ "Volume de marchandise inconnu. La conformité volumétrique n’a pas été vérifiée." if fr else "Cargo volume is unknown. Volumetric compliance has not been verified." }}</p>{% endif %}
 {% if not axles_checked %}<p>{{ "Vérifier les charges aux essieux avant le départ." if fr else "Check axle loads before departure." }}</p>{% endif %}
 {% if shortfall %}<p><strong>{{ "Autonomie insuffisante. Contacter l’exploitant avant le départ." if fr else "Insufficient fuel range. Contact dispatch before departure." }}</strong></p>{% endif %}
 {% if rows %}<p>{{ "Vérifier la disponibilité des retraits auprès de l’exploitant avant le départ." if fr else "Confirm withdrawal availability with dispatch before departure." }}</p>{% endif %}
