@@ -164,6 +164,10 @@ def validate_invoice_bilty_delivery(invoice, method=None):
 		bilty = frappe.get_doc("Bilty", reference.bilty, for_update=True)
 		if bilty.docstatus != 1:
 			frappe.throw(_("Bilty {0} is not submitted.").format(bilty.name))
+		if (invoice.customer, invoice.company, invoice.currency) != (
+			bilty.billing_customer or bilty.customer, bilty.company, bilty.currency,
+		):
+			frappe.throw(_("Invoice customer, company and currency must match Bilty {0}.").format(bilty.name))
 		validate_bilty_delivery(bilty)
 
 

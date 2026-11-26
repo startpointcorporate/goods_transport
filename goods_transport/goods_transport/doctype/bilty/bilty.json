@@ -56,6 +56,7 @@
   "rate_basis",
   "rate",
   "column_break_f1",
+  "bill_from_cargo",
   "freight_quantity",
   "freight_amount",
   "rate_contract",
@@ -373,9 +374,16 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "bill_from_cargo",
+   "fieldtype": "Check",
+   "label": "Use Cargo for Billing",
+   "depends_on": "eval:['Per Ton', 'Per Kg', 'Per Package'].includes(doc.rate_basis)"
+  },
+  {
    "default": "1",
    "description": "Quantity used to compute Freight Amount = Rate × Freight Quantity.",
    "fieldname": "freight_quantity",
+   "read_only_depends_on": "eval:doc.bill_from_cargo && ['Per Ton', 'Per Kg', 'Per Package'].includes(doc.rate_basis)",
    "fieldtype": "Float",
    "label": "Freight Quantity",
    "non_negative": 1,

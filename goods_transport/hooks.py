@@ -21,6 +21,11 @@ after_install = "goods_transport.install.after_install"
 # Form scripts
 doctype_js = {
 	"Transport Trip": "public/js/transport_trip.js",
+	"Bilty": "public/js/operational_links.js",
+	"Proof of Delivery": "public/js/operational_links.js",
+	"Trip Advance": "public/js/operational_links.js",
+	"Trip Expense": "public/js/operational_links.js",
+	"Trip Settlement": "public/js/operational_links.js",
 	"Driver": "public/js/driver.js",
 	"Vehicle": "public/js/fleet_tyres.js",
 }

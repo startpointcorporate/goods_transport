@@ -4,14 +4,15 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from goods_transport.goods_transport.services.cargo import validate_cargo_item
+from goods_transport.goods_transport.services.freight import CARGO_BASES, billable_quantity
 
 
 class Bilty(Document):
 	def validate(self):
-		self._default_billing_customer()
-		self._default_currency()
 		self._inherit_from_trip()
 		self._inherit_from_order()
+		self._default_billing_customer()
+		self._default_currency()
 		self._validate_cargo_items()
 		self._compute_item_totals()
 		self._compute_charges()
@@ -30,6 +31,10 @@ class Bilty(Document):
 
 	def before_submit(self):
 		self._snapshot_vehicle_plate()
+		if self.transport_order:
+			order = frappe.get_doc("Transport Order", self.transport_order, for_update=True)
+			if flt(self.total_quantity) > order.available_to_dispatch(self.name, for_update=True) + 1e-9:
+				frappe.throw(_("Bilty cargo quantity exceeds the dispatchable quantity on order {0}.").format(order.name))
 
 	def on_submit(self):
 		if self.status == "Draft":
@@ -72,13 +77,20 @@ class Bilty(Document):
 		)
 		if not trip:
 			return
-		if trip.company and trip.company != self.company:
+		if trip.company and self.company and trip.company != self.company:
 			frappe.throw(
 				_("Bilty company {0} does not match Trip company {1}.").format(self.company, trip.company)
 			)
-		self.vehicle = self.vehicle or trip.vehicle
+		for field in ("vehicle", "driver"):
+			value = trip.get(field)
+			if value and self.get(field) and value != self.get(field):
+				frappe.throw(_("Bilty {0} must match the assigned trip.").format(_(self.meta.get_label(field))))
+			self.set(field, self.get(field) or value)
 		self.vehicle_license_plate = self.vehicle_license_plate or trip.vehicle_license_plate
-		self.driver = self.driver or trip.driver
+		if not self.transport_order:
+			self.origin = self.origin or trip.origin
+			self.destination = self.destination or trip.destination
+		self.company = self.company or trip.company
 		self.transporter = self.transporter or trip.transporter
 		# Freight service Item: Trip carries the default for its whole journey;
 		# every Bilty billed off this Trip goes through the same SI line item
@@ -94,16 +106,27 @@ class Bilty(Document):
 			[
 				"customer", "company", "origin", "destination", "loading_location",
 				"delivery_location", "pod_required", "commodity", "currency",
-				"rate_basis", "rate",
+				"rate_basis", "rate", "docstatus",
 			],
 			as_dict=True,
 		)
 		if not order:
 			return
-		if order.company and order.company != self.company:
+		if order.company and self.company and order.company != self.company:
 			frappe.throw(
 				_("Bilty company {0} does not match Order company {1}.").format(self.company, order.company)
 			)
+		if order.docstatus != 1:
+			frappe.throw(_("Select a submitted Transport Order."))
+		for field in ("customer", "origin", "destination", "currency"):
+			value = order.get(field)
+			if self.get(field) and value and self.get(field) != value:
+				frappe.throw(_("Bilty {0} must match the linked order.").format(_(self.meta.get_label(field))))
+		if order.commodity and any(row.item != order.commodity for row in self.items or []):
+			frappe.throw(_("Bilty cargo must match the commodity on the linked order."))
+		if order.rate_basis and (self.rate_basis != order.rate_basis or flt(self.rate) != flt(order.rate)):
+			frappe.throw(_("Bilty rate and basis must match the linked order."))
+		self.company = self.company or order.company
 		if not self.customer:
 			self.customer = order.customer
 		self.origin = self.origin or order.origin
@@ -114,12 +137,6 @@ class Bilty(Document):
 			self.currency = order.currency
 		if order.pod_required and not self.pod_required:
 			self.pod_required = 1
-		# Commercial terms (rate, rate_basis) are resolved by the calling
-		# service — the JS "Create Bilty" dialog and create_bilty_from_trip
-		# both pull from the Order at their entry point. Not inherited here
-		# because rate_basis is a reqd Select that auto-defaults to the first
-		# option ("Per Trip"), which would defeat a `not self.rate_basis`
-		# check on validate().
 
 	# --- helpers ---------------------------------------------------------
 
@@ -146,7 +163,11 @@ class Bilty(Document):
 		self.additional_charges_total = total_billable
 
 	def _compute_freight_amount(self):
-		self.freight_amount = flt(self.rate) * flt(self.freight_quantity or 1)
+		if self.bill_from_cargo and self.rate_basis in CARGO_BASES:
+			self.freight_quantity = billable_quantity(
+				self.rate_basis, weight_kg=self.total_gross_weight, packages=self.total_packages,
+			)
+		self.freight_amount = flt(self.rate) * flt(self.freight_quantity if self.freight_quantity is not None else 1)
 
 	def _compute_grand_total(self):
 		self.grand_total = flt(self.freight_amount) + flt(self.additional_charges_total)
