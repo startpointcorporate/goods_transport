@@ -63,6 +63,24 @@ def available():
 	return bool(_assignment())
 
 
+@frappe.whitelist(methods=["POST"])
+def local_storage_key(expected_user: str):
+	"""Return account-bound encryption material only to its authenticated Fleet session."""
+	from base64 import b64encode
+	from hmac import digest
+
+	user = frappe.session.user
+	if expected_user != user or not _assignment():
+		frappe.throw(_("Fleet Driver access is unavailable."), frappe.PermissionError)
+	root = frappe.conf.get("goods_transport_fleet_cache_key") or frappe.conf.get("encryption_key")
+	if not root:
+		frappe.throw(_("Fleet local storage protection is unavailable. Contact support."))
+	scope = json.dumps([frappe.local.site, user], ensure_ascii=False).encode()
+	key = digest(root.encode(), b"goods_transport:fleet:v1:" + scope, "sha512")
+	frappe.local.response_headers["Cache-Control"] = "private, no-store"
+	return {"user": user, "material": b64encode(key).decode()}
+
+
 def _project_trip(trip, assignment):
 	locations = []
 	stored_plan = json.loads(trip.fuel_plan_inputs or "{}")

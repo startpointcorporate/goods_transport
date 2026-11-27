@@ -34,12 +34,12 @@ async function request(method, options = {}, query) {
 
 export const getFleetData = (method, query) => request(method, {}, query)
 
-export function postFleetData(method, body) {
+export function postFleetData(method, body, signal) {
 	if (!navigator.onLine || window.frappe?.boot?.fleet_offline || !window.csrf_token) {
 		throw new Error("An online Frappe session is required")
 	}
 	const headers = { Accept: "application/json", "X-Frappe-CSRF-Token": window.csrf_token }
 	const isUpload = body instanceof FormData
 	if (!isUpload) headers["Content-Type"] = "application/json"
-	return request(method, { method: "POST", headers, body: isUpload ? body : JSON.stringify(body) })
+	return request(method, { method: "POST", headers, signal, body: isUpload ? body : JSON.stringify(body) })
 }

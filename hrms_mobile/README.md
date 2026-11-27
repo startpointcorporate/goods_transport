@@ -37,19 +37,71 @@ Le bouton **Je termine ma mission** enregistre la fin terrain après les contrô
 
 L’API de synchronisation renvoie une projection de lecture qui exclut les coûts, les codes de retrait et les pièces jointes. À la première synchronisation, Goods Transport enregistre le worker issu du build HRMS avec la portée `/hrms`. Le worker précache les ressources publiques et retourne le HTML public du build avec une initialisation neutre quand la navigation réseau échoue. Les API métier et le HTML authentifié restent hors du précache.
 
-Les missions synchronisées sont conservées dans le stockage local de l’origine pour le compte courant, avec une durée maximale de 12 heures. Le changement d’identité, la déconnexion HRMS, l’expiration ou le refus serveur lors d’une actualisation invalident la copie. Afficher la date de synchronisation et actualiser quand la connexion revient. Les inspections, preuves de livraison et incidents peuvent être préparés avec leurs photos. Un événement terrain proposé par la copie locale peut aussi être enregistré en brouillon.
+Les missions synchronisées restent en mémoire pour le compte déverrouillé pendant au plus 12 heures. Le changement d’identité, la déconnexion HRMS, l’expiration ou le refus serveur lors d’une actualisation invalident la copie. Afficher la date de synchronisation et actualiser quand la connexion revient. Les inspections, preuves de livraison et incidents peuvent être préparés avec leurs photos. Un événement terrain proposé par la copie locale peut aussi être enregistré en brouillon.
 
 Appuyer sur **Valider** pour enregistrer et transmettre l’opération dans le même parcours. Les opérations **En attente de synchronisation** sont conservées sur le téléphone et reprises automatiquement au retour du réseau. Une réponse métier refusée donne **En erreur**. Le chauffeur peut consulter l’erreur, la corriger ou retirer l’opération explicitement. Une erreur bloque les envois suivants de la même mission jusqu’à son traitement. Le serveur vérifie le compte, le véhicule, l’affectation et l’étape. **Validé** confirme que le serveur a accepté l’opération.
 
-Les opérations en attente et leurs photos restent accessibles au même chauffeur après une nouvelle connexion. Les autres comptes utilisent leur propre liste. Une opération validée libère immédiatement ses photos et son formulaire. Le reçu local expire après sept jours. Les opérations en attente ou refusées restent conservées jusqu’à leur traitement ou à leur retrait explicite. Pour un incident immobilisant dont la réception reste en attente, contacter directement l’exploitation si nécessaire.
+Les opérations en attente et leurs photos restent accessibles au même chauffeur après une nouvelle connexion en ligne. Les autres comptes utilisent leur propre liste. Une opération validée libère immédiatement ses photos et son formulaire. Le reçu local expire après sept jours. Les opérations en attente ou refusées restent conservées jusqu’à leur traitement ou à leur retrait explicite. Pour un incident immobilisant dont la réception reste en attente, contacter directement l’exploitation si nécessaire.
 
 La révocation distante ne peut être connue du téléphone tant qu’il est hors ligne. Le stockage local dépend des règles d’éviction du navigateur. La feuille de route est consultable sous forme de données et de liens GPS. Le PDF chauffeur et les péages sont décrits ci-dessous. Les autres pièces jointes doivent être explicitement autorisées. Les incidents non immobilisants sont enregistrés dans le fil de la mission avec le chauffeur, le véhicule, l’horodatage Frappe et jusqu’à quatre photos privées.
+
+### Onglets et reprise des envois
+
+Les corrections, mises en attente, suppressions et réponses de synchronisation
+vérifient la révision et l’état dans la transaction IndexedDB qui écrit.
+Chaque envoi réserve l’opération. Web Locks sérialise la synchronisation
+lorsqu’il est disponible. Une réservation atomique IndexedDB protège aussi les
+navigateurs sans Web Locks et expire après 90 secondes si un onglet disparaît.
+Le serveur conserve son contrôle d’idempotence pour les requêtes dont la réponse
+a été perdue. Les autres onglets reçoivent un signal de changement sans données
+métier et relisent leur liste.
+
+### Confidentialité locale sur téléphone partagé
+
+La clé de compte est délivrée par un POST authentifié à une session HRMS qui
+dispose d’une affectation Fleet. La réponse utilise `Cache-Control: private, no-store`.
+Le serveur dérive deux clés distinctes à partir d’un secret du site, du site et
+du compte. Le navigateur les importe en mémoire via Web Crypto pour AES-GCM et
+HMAC. Il conserve uniquement les données chiffrées dans IndexedDB, avec des
+index métier opaques. Les métadonnées d’ordonnancement de la file restent
+visibles dans IndexedDB, dont le compte, l’identifiant d’opération, l’état
+et les dates techniques. Les formulaires, photos, erreurs détaillées,
+références de mission et documents sont chiffrés. L’instantané de mission
+reste en mémoire. Le code de retrait carburant reste consultable en ligne.
+
+La déconnexion ou la connexion d’un autre utilisateur révoque les références
+de clés en mémoire et signale le verrouillage aux autres onglets. Après
+fermeture complète, une connexion en ligne est nécessaire pour rouvrir les
+données. Tant que la page reste déverrouillée, elle peut travailler hors
+ligne. Une connexion du même compte récupère ses opérations non transmises.
+Les clés doivent rester stables entre les sessions. Utiliser le secret stable
+`goods_transport_fleet_cache_key` s’il est configuré, ou la clé de chiffrement
+Frappe du site. Le secret dédié doit être généré aléatoirement avec au moins 256 bits d’entropie. Préserver ce secret lors des sauvegardes et restaurations.
+Changer le secret ou le nom du site sans plan de migration rend les opérations
+existantes indéchiffrables. Si aucun secret n’est configuré, le déverrouillage
+échoue explicitement.
+
+Lors de la mise à niveau, les anciens instantanés de mission et documents
+consultables sont supprimés. Une opération historique en clair est migrée
+dans une transaction atomique après chiffrement lorsque son propriétaire
+se reconnecte. En cas d’échec, elle est conservée. Avant de remettre un
+ancien téléphone partagé en circulation, fermer les anciens onglets et
+faire reconnecter chaque compte avec des opérations historiques en attente.
+Ces anciennes données restent en clair jusqu’à leur migration.
+
+Le chiffrement protège la lecture ordinaire du stockage après verrouillage.
+Une session déjà ouverte, un script hostile de la même origine pendant le
+déverrouillage ou un profil compromis restent hors de cette garantie.
+L’effacement du stockage navigateur peut perdre les opérations jamais
+transmises. Une suppression logique ne garantit pas l’effacement physique
+des anciennes copies. [Modèle de sécurité Web Crypto](https://www.w3.org/TR/webcrypto/#security-considerations)
 
 ## Recette
 
 ```sh
 bench --site inspection-qa.localhost run-tests --module goods_transport.goods_transport.tests.test_fleet_driver_site
 node --test apps/goods_transport/tests/fleet_driver_v2.test.mjs
+node apps/goods_transport/tests/e2e/fleet_outbox_tabs.mjs
 FLEET_QA_SITE=inspection-qa.localhost FLEET_QA_PASSWORD=local-test \
   env/bin/python apps/goods_transport/tests/e2e/seed_fleet_driver_v2.py > /tmp/fleet-fixture.json
 FLEET_QA_URL=http://127.0.0.1:8000 FLEET_QA_FIXTURE=/tmp/fleet-fixture.json \
@@ -61,7 +113,7 @@ Le test serveur utilise des comptes Frappe sur un site isolé. Le parcours Playw
 
 ## Documents de route et péages
 
-Dans le détail d’une mission, sélectionner la langue puis **Synchroniser le PDF**. Le PDF chauffeur réutilise le moteur de rendu de la feuille de route Goods Transport avec une projection distincte des données autorisées. Les deux langues sont stockées séparément dans IndexedDB dans la limite de 5 Mio par fichier. Le cache PDF et péages suit l’identité du compte, la révision de la mission et l’expiration du lot correspondant. Il est effacé avec le lot lors d’une déconnexion ou d’un changement d’identité.
+Dans le détail d’une mission, sélectionner la langue puis **Synchroniser le PDF**. Le PDF chauffeur réutilise le moteur de rendu de la feuille de route Goods Transport avec une projection distincte des données autorisées. Les deux langues sont stockées séparément dans IndexedDB dans la limite de 5 Mio par fichier. Le cache PDF et péages est chiffré et suit le compte, la révision de la mission et l’expiration du lot. La déconnexion verrouille le cache.
 
 Les péages proviennent du calcul existant de correspondance avec la géométrie poids lourds. Le document et l’API ne chargent aucun tarif. Un plan confirmé utilise ses points enregistrés. Si le graphe a changé ou si les coordonnées sont absentes, l’interface indique que le plan est indisponible.
 

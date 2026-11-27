@@ -9,7 +9,7 @@
 					<RouterLink v-if="!offline" :to="{ name: 'Home', query: { space: 'hr' } }" class="fleet-button">{{ labels.hr }}</RouterLink>
 				</nav>
 				<div v-if="offline" class="flex flex-wrap items-center gap-2">
-					<p role="status">{{ labels.offline }}</p>
+					<p role="status">{{ locked ? (french ? "Reconnectez-vous pour déverrouiller les données Fleet." : "Connect to unlock Fleet data.") : labels.offline }}</p>
 					<button v-if="offlineShell" class="fleet-button" :disabled="reconnecting" @click="reconnect">
 						{{ french ? "Réessayer la connexion" : "Retry connection" }}
 					</button>
@@ -123,8 +123,9 @@ import { RouterLink } from "vue-router"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/vue"
 import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offline"
 import { nextStep, primaryMission } from "./missionFlow.mjs"
-import { discardFleetOperation, enqueueFleetOperation, readFleetOutbox, retryFleetOperation, syncFleetOutbox } from "./fleetOutbox"
+import { discardFleetOperation, enqueueFleetOperation, outboxChangeKey, readFleetOutbox, retryFleetOperation, syncFleetOutbox } from "./fleetOutbox"
 import { getFleetData } from "./fleetApi"
+import { fleetVaultUnlocked, unlockFleetVault, vaultSessionKey } from "./fleetVault"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
 import FleetRoadDocuments from "./FleetRoadDocuments.vue"
@@ -132,6 +133,7 @@ import FleetPrivateDocuments from "./FleetPrivateDocuments.vue"
 
 const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
 const offline = ref(offlineShell || !navigator.onLine)
+const locked = ref(!fleetVaultUnlocked())
 const reconnecting = ref(false)
 const french = (readFleetSnapshot()?.lang || document.documentElement.lang || navigator.language).startsWith("fr")
 const tripStatus = inject("$translate")
@@ -176,8 +178,19 @@ function operationLabel(entry) {
 	return french ? "Incident" : "Incident"
 }
 
+let outboxRead = 0
 async function loadOutbox() {
-	outbox.value = await readFleetOutbox()
+	const current = ++outboxRead
+	try {
+		const records = await readFleetOutbox()
+		if (current === outboxRead) outbox.value = fleetVaultUnlocked() ? records : []
+	} catch (error) {
+		if (current === outboxRead && fleetVaultUnlocked()) {
+			outboxError.value = french ? "Impossible de lire certaines opérations conservées sur ce téléphone."
+				: "Some operations stored on this phone could not be read."
+		}
+		throw error
+	}
 }
 
 async function manageOutbox(operation) {
@@ -194,16 +207,21 @@ async function manageOutbox(operation) {
 	}
 }
 
+function showUpdatedOperation() {
+	outboxError.value = french ? "Cette opération a changé dans un autre onglet. Consultez son état actuel."
+		: "This operation changed in another tab. Check its current status."
+}
+
 const discard = entry => manageOutbox(async () => {
 	if (entry.status === "error" && !window.confirm(french ? "Retirer cette opération non transmise et ses photos ?" : "Remove this unsent operation and its photos?")) return
-	await discardFleetOperation(entry)
+	if (!await discardFleetOperation(entry)) showUpdatedOperation()
 })
 const syncOutbox = () => manageOutbox(async () => {
 	await syncFleetOutbox()
 	await refresh()
 })
 const retry = entry => manageOutbox(async () => {
-	await retryFleetOperation(entry)
+	if (!await retryFleetOperation(entry)) return showUpdatedOperation()
 	await syncFleetOutbox()
 	await refresh()
 })
@@ -220,7 +238,8 @@ function editOperation(entry) {
 
 function submitOperation(method, body) {
 	return manageOutbox(async () => {
-		const submitted = await enqueueFleetOperation(selected.value, method, body, correction.value?.id)
+		const submitted = await enqueueFleetOperation(selected.value, method, body, correction.value)
+		if (!submitted) return showUpdatedOperation()
 		correction.value = null
 		panel.value = ""
 		lastOperation.value = submitted.id
@@ -299,10 +318,15 @@ async function refresh() {
 		return
 	}
 	try {
+		await unlockFleetVault()
+		if (current !== request) return
+		locked.value = !fleetVaultUnlocked()
+		if (locked.value) throw new Error("Fleet storage is locked")
 		const snapshot = await getFleetData("missions")
 		if (current !== request) return
-		showSnapshot({ ...snapshot, savedAt: Date.now() })
+		if (!fleetVaultUnlocked()) return
 		void saveFleetSnapshot(snapshot)
+		showSnapshot(readFleetSnapshot())
 	} catch (failure) {
 		if (current !== request) return
 		if (failure instanceof TypeError) {
@@ -310,7 +334,9 @@ async function refresh() {
 			showSnapshot(readFleetSnapshot())
 		} else {
 			purgeFleetSnapshot()
+			locked.value = true
 			showSnapshot(null)
+			if (failure.businessMessage) error.value = failure.businessMessage
 		}
 	} finally {
 		if (current === request) loading.value = false
@@ -345,7 +371,23 @@ async function reconnect() {
 	}
 }
 
-function storageChanged() {
+function storageChanged(event) {
+	if (event.key === vaultSessionKey) {
+		request++
+		outboxRead++
+		purgeFleetSnapshot()
+		locked.value = true
+		outbox.value = []
+		showSnapshot(null)
+		openMission(null)
+		window.location.reload()
+		return
+	}
+	if (event.key === outboxChangeKey) {
+		void loadOutbox().catch(() => {})
+		if (!offline.value && !outboxBusy.value) void refresh()
+		return
+	}
 	if (offline.value) showSnapshot(readFleetSnapshot())
 	void loadOutbox().catch(() => {})
 }
@@ -364,6 +406,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
 	request++
+	outboxRead++
 	window.clearInterval(retryTimer)
 	window.removeEventListener("online", reconnect)
 	window.removeEventListener("offline", refresh)

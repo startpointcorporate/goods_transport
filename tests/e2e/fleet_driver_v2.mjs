@@ -87,7 +87,16 @@ try {
 	if (process.env.FLEET_QA_LAYOUT_ONLY !== "1") {
 		const context = await browser.newContext({ ...devices["Pixel 7"], locale: "fr-FR", viewport: { width: 390, height: 844 } })
 		const page = await context.newPage()
+		const keyResponse = page.waitForResponse(response => response.url().endsWith(".local_storage_key") && response.ok())
 		await login(page, fixtures.driver)
+		assert.equal((await keyResponse).headers()["cache-control"], "private, no-store")
+		assert.equal(await page.evaluate(async ({ path, other }) => {
+			const response = await fetch(path + "local_storage_key", {
+				method: "POST", headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": window.csrf_token },
+				body: JSON.stringify({ expected_user: other }),
+			})
+			return response.status
+		}, { path: api, other: fixtures.other.user }), 403)
 		await page.getByRole("button", { name: "Ma mission", exact: true }).waitFor()
 		await page.screenshot({ path: captures + "/mission-390.png" })
 		await openTrip(page, fixtures.driver.trip)
@@ -101,7 +110,7 @@ try {
 		await page.getByText("Autorisations de carburant", { exact: true }).click()
 		await page.getByRole("button", { name: "Consulter l’autorisation active" }).click()
 		await page.getByText(fixtures.driver.fuel_code, { exact: true }).waitFor()
-		assert.equal(await page.evaluate(code => localStorage.getItem("goods-transport:fleet-snapshot:v1").includes(code), fixtures.driver.fuel_code), false)
+		assert.equal(await page.evaluate(code => JSON.stringify(localStorage).includes(code), fixtures.driver.fuel_code), false)
 		await page.getByRole("button", { name: "Retour à la mission" }).click()
 		await inspect(page, "départ", 100)
 		await driveToDelivery(page)

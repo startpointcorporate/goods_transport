@@ -49,6 +49,7 @@ async function serve(request, response) {
 			get_current_employee_info: { name: "EMP-TEST", user_id: user },
 			get_current_user_info: { name: user, roles: ["Fleet Driver"] },
 			available: true,
+			local_storage_key: { user, material: Buffer.alloc(64, 7).toString("base64") },
 			missions: { user, trips: [trip] },
 		}
 		response.setHeader("Content-Type", "application/json")
@@ -81,24 +82,23 @@ async function run() {
 		await page.getByRole("link", { name: "Télécharger le PDF" }).waitFor()
 		await page.getByRole("button", { name: "Synchroniser", exact: true }).click()
 		await page.getByRole("link", { name: "Consulter", exact: true }).waitFor()
-		await page.close()
 		await context.setOffline(true)
-		page = await context.newPage()
-		await page.goto(origin + "/hrms")
 		await page.getByText(/Hors ligne/).waitFor()
-		await page.getByText("Documents et péages", { exact: true }).click()
 		await page.getByText("Péage test", { exact: true }).waitFor()
 		await page.getByRole("link", { name: "Prévisualiser le PDF" }).waitFor()
-		await page.getByText("Consigne privée.pdf", { exact: true }).waitFor()
 		await page.getByRole("link", { name: "Consulter", exact: true }).waitFor()
 		assert.equal(await page.getByRole("button", { name: "Synchroniser le PDF" }).isDisabled(), true)
-		assert.equal(await page.getByRole("button", { name: "Marchandises et livraisons" }).count(), 1)
-		assert.equal(await page.getByRole("button", { name: "Départ", exact: true }).count(), 0)
 		assert.equal(await page.getByRole("link", { name: "Mon espace RH" }).count(), 0)
+		await page.close()
+		page = await context.newPage()
+		await page.goto(origin + "/hrms")
+		await page.getByRole("status").filter({ hasText: /Connect to unlock Fleet data|déverrouiller les données Fleet/ }).waitFor()
+		assert.equal(await page.getByText("Consigne privée.pdf").count(), 0)
+		assert.equal(await page.getByRole("heading", { name: "TEST-A-1" }).count(), 0)
 		revision++
 		await context.setOffline(false)
 		const mission = page.getByRole("heading", { name: "TEST-A-2" })
-		const retry = page.getByRole("button", { name: "Réessayer la connexion" })
+		const retry = page.getByRole("button", { name: /Réessayer la connexion|Retry connection/ })
 		await mission.or(retry).first().waitFor()
 		if (await retry.isVisible()) await retry.click()
 		await mission.waitFor()

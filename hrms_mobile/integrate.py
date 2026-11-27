@@ -57,12 +57,12 @@ EDITS = (
 	(
 		Path("data/session.js"),
 		'if (response.message === "Logged In") {',
-		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()\n\t\tresetFleetOutboxSession()',
+		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot(true)\n\t\tresetFleetOutboxSession()',
 	),
 	(
 		Path("data/session.js"),
 		'url: "logout",\n\t\tonSuccess() {',
-		'url: "logout",\n\t\tasync onSuccess() {\n\t\t\tpurgeFleetSnapshot()\n\t\t\tresetFleetOutboxSession()',
+		'url: "logout",\n\t\tasync onSuccess() {\n\t\t\tpurgeFleetSnapshot(true)\n\t\t\tresetFleetOutboxSession()',
 	),
 	(
 		Path("../public/sw.js"),
@@ -104,7 +104,7 @@ def integrate(hrms):
 
 	fleet = source / "fleet_driver"
 	fleet.mkdir(exist_ok=True)
-	for asset in ("FleetLink.vue", "FleetMissions.vue", "missionFlow.mjs", "fleetOutbox.js", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js", "FleetPhotoPicker.vue", "FleetPrivateDocuments.vue"):
+	for asset in ("FleetLink.vue", "FleetMissions.vue", "missionFlow.mjs", "fleetOutbox.js", "fleetVault.js", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js", "FleetPhotoPicker.vue", "FleetPrivateDocuments.vue"):
 		shutil.copyfile(EXTENSION / asset, fleet / asset)
 	for path, content in files.items():
 		path.write_text(content)

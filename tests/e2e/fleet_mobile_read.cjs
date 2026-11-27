@@ -48,6 +48,7 @@ async function configure(context) {
 			get_current_user_info: { name: user, first_name: "Chauffeur test", roles: ["Fleet Driver"] },
 			get_current_employee_info: { name: "EMP-TEST", user_id: user, employee_name: "Chauffeur test" },
 			available: true,
+			local_storage_key: { user, material: Buffer.alloc(64, 7).toString("base64") },
 			sync_operation: "validated",
 			missions: { user, trips: [trip] },
 			present_fuel_authorizations: [{ name: "CODE-TEST", station: "Station test", authorized_liters: 80 }],
