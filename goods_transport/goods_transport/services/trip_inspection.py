@@ -138,8 +138,11 @@ def has_permission(doc, ptype=None, user=None, **kwargs):
 
 
 def permission_query(user=None):
-	# The inspections are consulted through their readable trip or direct form links.
-	return "1=0"
+	try:
+		readable_trips = frappe.get_list("Transport Trip", fields=["name"], user=user, run=False, order_by=None)
+	except frappe.PermissionError:
+		return "1=0"
+	return frappe.qb.DocType(INSPECTION).trip.isin(readable_trips)
 
 
 def file_permission(doc, ptype=None, user=None, **kwargs):

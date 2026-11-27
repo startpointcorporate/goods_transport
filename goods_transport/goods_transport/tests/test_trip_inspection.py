@@ -198,10 +198,20 @@ class TestTripInspection(TestCase):
 		original = frappe.get_doc(INSPECTION, doc["name"])
 		self.assertFalse(original.observations)
 		self.assertEqual(compare(self.trip.name)["before"]["revision"], 2)
+		_, other_trip, _ = self.case.route(vehicle=self.case.second_vehicle())
+		other_inspection = open_inspection(other_trip.name, "Departure")
 		user = fixtures.make("User", email=f"{frappe.generate_hash(length=8)}@example.com",
 			first_name="Inspection reader", send_welcome_email=0, roles=[{"role": "Stock User"}])
 		frappe.set_user(user.name)
 		self.assertTrue(frappe.has_permission(INSPECTION, "read", doc=inspection))
+		self.assertEqual(set(frappe.get_list(INSPECTION, filters={"trip": self.trip.name}, pluck="name")),
+			{inspection.name, revised["name"]})
+		self.assertIn(other_inspection["name"], frappe.get_list(INSPECTION, pluck="name"))
+		frappe.set_user("Administrator")
+		fixtures.make("User Permission", user=user.name, allow="Transport Trip", for_value=self.trip.name,
+			apply_to_all_doctypes=0, applicable_for="Transport Trip")
+		frappe.set_user(user.name)
+		self.assertEqual(set(frappe.get_list(INSPECTION, pluck="name")), {inspection.name, revised["name"]})
 		self.assertTrue(frappe.has_permission("File", "read", doc=file))
 		self.assertFalse(frappe.has_permission("File", "write", doc=file))
 		self.assertEqual(compare(self.trip.name)["before"]["name"], revised["name"])
