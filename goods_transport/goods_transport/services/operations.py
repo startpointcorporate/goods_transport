@@ -50,7 +50,7 @@ def create_trip_from_order(transport_order: str, vehicle: str, quantity: float |
 @frappe.whitelist(methods=["POST"])
 def create_bilty_from_trip(
 	transport_trip: str,
-	customer: str,
+	customer: str | None = None,
 	transport_order: str | None = None,
 	freight_item: str | None = None,
 	rate: float | None = None,
@@ -61,6 +61,8 @@ def create_bilty_from_trip(
 	from the Trip and, when given, the Order."""
 	trip = frappe.get_doc("Transport Trip", transport_trip)
 	trip.check_permission("read")
+	if not transport_order and len(trip.order_allocations) == 1:
+		transport_order = trip.order_allocations[0].transport_order
 	order = None
 	if transport_order:
 		order = frappe.get_doc("Transport Order", transport_order)
@@ -71,7 +73,7 @@ def create_bilty_from_trip(
 	bilty = frappe.new_doc("Bilty")
 	bilty.company = trip.company
 	bilty.bilty_date = today()
-	bilty.customer = customer
+	bilty.customer = customer or (order.customer if order else None)
 	bilty.transport_trip = trip.name
 	bilty.transport_order = transport_order
 	bilty.origin = order.origin if order else trip.origin
