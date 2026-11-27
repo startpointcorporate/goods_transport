@@ -61,6 +61,10 @@ class TestOperationalJourney(TestCase):
 		trip = frappe.get_doc("Transport Trip", create_trip_from_order(order.name, self.case.vehicle.name, 5))
 		self.assertEqual(trip.planned_distance, 30)
 		self.assertEqual((trip.planned_cargo_weight, trip.planned_cargo_volume), (1500, 10))
+		prefilled = frappe.get_doc("Bilty", create_bilty_from_trip(trip.name, freight_item=self.case.freight.name))
+		self.assertEqual((prefilled.transport_order, prefilled.customer, prefilled.total_quantity,
+			prefilled.total_gross_weight, prefilled.total_cargo_volume), (order.name, order.customer, 5, 1500, 10))
+		prefilled.delete()
 		frappe.db.set_value("Vehicle", self.case.vehicle.name, "volume_capacity", 50)
 		trip.freight_item = self.case.freight.name
 		trip.append("order_allocations", {"transport_order": intermediate.name, "quantity": 8, "allocated_volume": 14})
