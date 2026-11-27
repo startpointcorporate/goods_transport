@@ -73,8 +73,26 @@ async function run() {
 		const setUser = user => context.addCookies([{ name: "user_id", value: user, url: origin }])
 		await setUser(driver)
 		let page = await context.newPage()
+		await page.goto(origin + "/seed-legacy-cache")
+		await page.evaluate(() => {
+			localStorage.setItem("goods-transport:fleet-snapshot:v1", "old plaintext snapshot")
+			return new Promise((resolve, reject) => {
+				const request = indexedDB.open("goods-transport:fleet-documents:v1", 1)
+				request.onupgradeneeded = () => request.result.createObjectStore("documents")
+				request.onerror = () => reject(request.error)
+				request.onsuccess = () => {
+					const db = request.result
+					const tx = db.transaction("documents", "readwrite")
+					tx.objectStore("documents").put("old plaintext PDF", "previous")
+					tx.oncomplete = () => { db.close(); resolve() }
+				}
+			})
+		})
 		await page.goto(origin + "/hrms/fleet")
 		await page.getByRole("heading", { name: "TEST-A-1" }).waitFor()
+		assert.equal(await page.evaluate(() => localStorage.getItem("goods-transport:fleet-snapshot:v1")), null)
+		await page.waitForFunction(async () => !(await indexedDB.databases())
+			.some(database => database.name === "goods-transport:fleet-documents:v1"))
 		await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
 		await page.getByText("Documents et péages", { exact: true }).click()
 		await page.getByText("Péage test", { exact: true }).waitFor()
@@ -113,7 +131,7 @@ async function run() {
 		await page.getByRole("alert").waitFor()
 		assert.equal(await page.getByRole("button", { name: /TEST-A/ }).count(), 0)
 		assert.equal(await page.evaluate(() => localStorage.getItem("goods-transport:fleet-snapshot:v1")), null)
-		console.log("Chromium Pixel 7: cold offline navigation, reconnect and account isolation passed")
+		console.log("Chromium Pixel 7: legacy cache cleanup, offline navigation, reconnect and account isolation passed")
 	} finally {
 		await browser?.close()
 		server.close()

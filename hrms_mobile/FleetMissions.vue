@@ -168,8 +168,8 @@ const outbox = shallowRef([])
 const outboxBusy = ref(false)
 const outboxError = ref("")
 const outboxLabels = french ? {
-	draft: "En attente de synchronisation", pending: "En attente de synchronisation", validated: "Validé", error: "En erreur",
-} : { draft: "Pending sync", pending: "Pending sync", validated: "Validated", error: "Sync error" }
+	pending: "En attente de synchronisation", validated: "Validé", error: "En erreur",
+} : { pending: "Pending sync", validated: "Validated", error: "Sync error" }
 
 function operationLabel(entry) {
 	if (entry.method === "record_field_event") return actionLabels[entry.entries.find(([key]) => key === "event")?.[1]] || (french ? "Étape terrain" : "Field event")
@@ -398,10 +398,10 @@ onMounted(() => {
 	window.addEventListener("storage", storageChanged)
 	window.addEventListener("focus", reconnect)
 	retryTimer = window.setInterval(() => {
-		if (navigator.onLine && !offlineShell && outbox.value.some(entry => ["pending", "draft"].includes(entry.status))) void syncOutbox()
+		if (navigator.onLine && !offlineShell && outbox.value.some(entry => entry.status === "pending")) void syncOutbox()
 	}, 15000)
 	void refresh().then(() => loadOutbox().catch(() => {})).then(() => {
-		if (!offline.value && outbox.value.some(entry => ["pending", "draft"].includes(entry.status))) return syncOutbox()
+		if (!offline.value && outbox.value.some(entry => entry.status === "pending")) return syncOutbox()
 	})
 })
 onUnmounted(() => {

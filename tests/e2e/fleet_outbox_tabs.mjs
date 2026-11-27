@@ -135,25 +135,57 @@ async function scenario(useWebLocks) {
 		assert.equal(await second.evaluate(() => window.outbox.retryFleetOperation(window.stale)), false)
 		assert.deepEqual(await first.evaluate(async () => (await window.outbox.readFleetOutbox())
 			.map(({ status, entries }) => ({ status, entries }))), [{ status: "validated", entries: [] }])
-		await first.evaluate(() => new Promise(resolve => {
-			const open = indexedDB.open("goods-transport:fleet-outbox:v1")
-			open.onsuccess = () => {
-				const db = open.result
-				const tx = db.transaction("operations", "readwrite")
-				const store = tx.objectStore("operations")
-				for (const [id, user] of [["legacy-own", "first@example.test"], ["legacy-other", "second@example.test"]]) {
-					store.put({ id, user, trip: "OLD", vehicle: "TRUCK", created: Date.now(),
-						method: "report_incident", status: "draft", entries: [["description", "old pending report"]] })
-				}
-				tx.oncomplete = () => { db.close(); resolve() }
+		await first.evaluate(async () => {
+			const trip = { name: "DEPENDENT", vehicle: "TRUCK" }
+			await window.outbox.enqueueFleetOperation(trip, "record_field_event", { event: "at_loading" })
+			window.transmit = async () => { throw Object.assign(new Error(), { status: 417 }) }
+			await window.outbox.syncFleetOutbox()
+			await window.outbox.enqueueFleetOperation({ name: "OTHER", vehicle: "TRUCK" },
+				"record_field_event", { event: "arrived" })
+			await window.outbox.enqueueFleetOperation(trip, "record_field_event", { event: "loaded" })
+		})
+		const ordered = []
+		let startOther
+		let finishOther
+		let startLoading
+		let finishLoading
+		const otherStarted = new Promise(resolve => { startOther = resolve })
+		const otherHeld = new Promise(resolve => { finishOther = resolve })
+		const loadingStarted = new Promise(resolve => { startLoading = resolve })
+		const loadingHeld = new Promise(resolve => { finishLoading = resolve })
+		for (const page of [first, second]) {
+			await page.exposeFunction("sendOrdered", async event => {
+				ordered.push(event)
+				if (event === "arrived") { startOther(); await otherHeld }
+				if (event === "at_loading") { startLoading(); await loadingHeld }
+				return "validated"
+			})
+			await page.evaluate(() => {
+				window.transmit = (_, body) => window.sendOrdered(body.get("event"))
+			})
+		}
+		try {
+			const sync = first.evaluate(() => window.outbox.syncFleetOutbox())
+			await otherStarted
+			assert.equal(await second.evaluate(async () => {
+				const earlier = (await window.outbox.readFleetOutbox()).find(entry => entry.status === "error")
+				return window.outbox.retryFleetOperation(earlier)
+			}), true)
+			finishOther()
+			await Promise.race([loadingStarted, sync])
+			assert.deepEqual(ordered, ["arrived", "at_loading"])
+			const competitor = second.evaluate(() => window.outbox.syncFleetOutbox())
+			if (!useWebLocks) {
+				await competitor
+				assert.deepEqual(ordered, ["arrived", "at_loading"])
 			}
-		}))
-		assert.equal(await first.evaluate(async () => (await window.outbox.readFleetOutbox())
-			.find(operation => operation.id === "legacy-own")?.entries[0][1]), "old pending report")
-		assert.equal(await first.evaluate(async () => Boolean((await window.raw("legacy-own")).sealed)), true)
-		assert.equal(await first.evaluate(async () => (await window.raw("legacy-own")).entries), undefined)
-		assert.equal(await first.evaluate(async () => (await window.raw("legacy-other")).status), "draft")
-
+			finishLoading()
+			await Promise.all([sync, competitor])
+			assert.deepEqual(ordered, ["arrived", "at_loading", "loaded"])
+		} finally {
+			finishOther()
+			finishLoading()
+		}
 	} finally {
 		await context.close()
 	}

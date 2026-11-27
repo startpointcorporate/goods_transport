@@ -49,7 +49,7 @@ La révocation distante ne peut être connue du téléphone tant qu’il est hor
 
 Les corrections, mises en attente, suppressions et réponses de synchronisation
 vérifient la révision et l’état dans la transaction IndexedDB qui écrit.
-Chaque envoi réserve l’opération. Web Locks sérialise la synchronisation
+Avant chaque envoi, une transaction relit la file, choisit la première opération non validée de chaque mission et ne réserve qu’une opération en attente dont aucun onglet ne détient déjà la réservation. Une erreur ou une réservation active bloque les envois suivants de cette mission. Web Locks sérialise la synchronisation
 lorsqu’il est disponible. Une réservation atomique IndexedDB protège aussi les
 navigateurs sans Web Locks et expire après 90 secondes si un onglet disparaît.
 Le serveur conserve son contrôle d’idempotence pour les requêtes dont la réponse
@@ -81,13 +81,8 @@ Changer le secret ou le nom du site sans plan de migration rend les opérations
 existantes indéchiffrables. Si aucun secret n’est configuré, le déverrouillage
 échoue explicitement.
 
-Lors de la mise à niveau, les anciens instantanés de mission et documents
-consultables sont supprimés. Une opération historique en clair est migrée
-dans une transaction atomique après chiffrement lorsque son propriétaire
-se reconnecte. En cas d’échec, elle est conservée. Avant de remettre un
-ancien téléphone partagé en circulation, fermer les anciens onglets et
-faire reconnecter chaque compte avec des opérations historiques en attente.
-Ces anciennes données restent en clair jusqu’à leur migration.
+Lors de la mise à niveau, les anciens instantanés et documents consultables
+stockés en clair sont supprimés. Ils sont récupérables depuis le serveur.
 
 Le chiffrement protège la lecture ordinaire du stockage après verrouillage.
 Une session déjà ouverte, un script hostile de la même origine pendant le

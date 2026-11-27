@@ -86,13 +86,7 @@ export async function readFleetOutbox() {
 		.sort((a, b) => a.created - b.created)
 	const operations = []
 	for (const record of own) {
-		if (record.sealed) operations.push({ ...record, ...await openFleetData(record.sealed, record.id) })
-		else {
-			const protectedRecord = await protectOperation(record)
-			if (await changeOperation(record, () => protectedRecord)) {
-				operations.push({ ...record, revision: (record.revision || 0) + 1 })
-			}
-		}
+		operations.push({ ...record, ...await openFleetData(record.sealed, record.id) })
 	}
 	return user === sessionUser() && fleetVaultUnlocked() ? operations : []
 }
@@ -131,14 +125,13 @@ export async function enqueueFleetOperation(trip, method, body, correction) {
 			if (current !== generation || user !== sessionUser() || !fleetVaultUnlocked()) return
 			const records = request.result.filter(record => record.user === user)
 			const existing = records.find(record => protectedRecord.fingerprint && record.status !== "validated"
-				&& (record.fingerprint === protectedRecord.fingerprint || (!record.sealed
-					&& record.trip === trip.name && operationKey(record.method, record.entries) === operationKey(method, entries))))
+				&& record.fingerprint === protectedRecord.fingerprint)
 			if (existing && existing.id !== correction?.id) {
 				if (!correction) result = existing
 				return
 			}
 			const previous = records.find(record => correction && record.id === correction.id && record.status === "error"
-				&& (record.tripIndex === protectedRecord.tripIndex || record.trip === trip.name) && sameRevision(record, correction))
+				&& record.tripIndex === protectedRecord.tripIndex && sameRevision(record, correction))
 			if (correction && !previous) return
 			result = {
 				...protectedRecord,
@@ -163,20 +156,47 @@ export function retryFleetOperation(record) {
 		? { ...current, status: "pending" } : undefined)
 }
 
+async function claimNextOperation(user, current) {
+	let claimed
+	await transaction("readwrite", store => {
+		const request = store.getAll()
+		request.onsuccess = () => {
+			if (current !== generation || user !== sessionUser() || !fleetVaultUnlocked()) return
+			const now = Date.now()
+			const records = request.result.filter(record => record.user === user && record.status !== "validated")
+				.sort((left, right) => left.created - right.created)
+			const seenTrips = new Set()
+			for (const record of records) {
+				if (seenTrips.has(record.tripIndex)) continue
+				seenTrips.add(record.tripIndex)
+				if (record.status !== "pending" || record.lease > now) continue
+				claimed = { ...record, lease: now + leaseDuration, revision: record.revision + 1 }
+				store.put(claimed)
+				break
+			}
+		}
+		return request
+	})
+	return claimed
+}
+
 export async function syncFleetOutbox() {
 	if (sending || !fleetVaultUnlocked() || !navigator.onLine || window.frappe?.boot?.fleet_offline) return
+	const user = sessionUser()
 	sending = true
 	const current = generation
 	const run = async () => {
-		const blocked = new Set()
-		for (const record of await readFleetOutbox()) {
-			if (current !== generation || record.user !== sessionUser()) return
-			if (record.status === "error") blocked.add(record.trip)
-			if (blocked.has(record.trip) || !["pending", "draft"].includes(record.status)) continue
-			const lease = Date.now() + leaseDuration
-			if (!await changeOperation(record, entry => entry.lease > Date.now() ? undefined : { ...entry, lease })) return
-			const claimed = { ...record, revision: (record.revision || 0) + 1 }
-			if (current !== generation || record.user !== sessionUser()) return
+		while (current === generation && user === sessionUser() && fleetVaultUnlocked() && navigator.onLine) {
+			const claimed = await claimNextOperation(user, current)
+			if (!claimed) return
+			let record
+			try {
+				record = { ...claimed, ...await openFleetData(claimed.sealed, claimed.id) }
+			} catch (error) {
+				await changeOperation(claimed, entry => ({ ...entry, lease: null }))
+				throw error
+			}
+			if (current !== generation || user !== sessionUser() || !fleetVaultUnlocked()) return
 			const body = new FormData()
 			for (const [name, value] of record.entries) body.append(name, value)
 			body.set("trip", record.trip)
@@ -198,9 +218,8 @@ export async function syncFleetOutbox() {
 					return
 				}
 				updated = { ...record, status: "error", error: error.businessMessage || "" }
-				blocked.add(record.trip)
 			}
-			if (current !== generation || record.user !== sessionUser()) return
+			if (current !== generation || user !== sessionUser() || !fleetVaultUnlocked()) return
 			const protectedRecord = await protectOperation({ ...updated, lease: null })
 			if (!await changeOperation(claimed, () => protectedRecord)) return
 		}
