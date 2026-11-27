@@ -50,6 +50,7 @@
   "total_packages",
   "column_break_tot1",
   "total_gross_weight",
+  "total_cargo_volume",
   "total_net_weight",
   "freight_section",
   "freight_item",
@@ -76,6 +77,7 @@
   "remarks"
  ],
  "fields": [
+  {"fieldname": "total_cargo_volume", "fieldtype": "Float", "label": "Total Cargo Volume (m³)", "non_negative": 1, "read_only": 1, "no_copy": 1},
   {
    "default": "BLT-.YYYY.-.#####",
    "fieldname": "naming_series",

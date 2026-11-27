@@ -5,7 +5,9 @@ import json
 import frappe
 from frappe import _
 from frappe.permissions import get_user_permissions
-from frappe.utils import now_datetime
+from frappe.utils import flt, now_datetime
+
+from . import trip_inspection
 
 from goods_transport.setup.install_fleet_driver import ROLE
 
@@ -14,6 +16,15 @@ TRIP_FIELDS = (
 	"destination", "planned_departure_at", "planned_return_at", "departure_time",
 	"arrival_time", "actual_distance", "departure_odometer", "arrival_odometer",
 )
+FIELD_EVENTS = {
+	"at_loading": ("Vehicle Assigned", "At Loading Point"),
+	"loaded": ("At Loading Point", "Loaded"),
+	"departed": ("Loaded", "In Transit"),
+	"arrived": ("In Transit", "Arrived"),
+	"unloaded": ("Arrived", "Unloading"),
+	"delivered": ("Unloading", "Delivered"),
+	"finished": ("Delivered", None),
+}
 AUTHORIZATION_FIELDS = (
 	"station", "fuel_type", "authorized_liters", "delivered_liters", "valid_from",
 	"valid_until", "status",
@@ -52,6 +63,24 @@ def available():
 	return bool(_assignment())
 
 
+@frappe.whitelist(methods=["POST"])
+def local_storage_key(expected_user: str):
+	"""Return account-bound encryption material only to its authenticated Fleet session."""
+	from base64 import b64encode
+	from hmac import digest
+
+	user = frappe.session.user
+	if expected_user != user or not _assignment():
+		frappe.throw(_("Fleet Driver access is unavailable."), frappe.PermissionError)
+	root = frappe.conf.get("goods_transport_fleet_cache_key") or frappe.conf.get("encryption_key")
+	if not root:
+		frappe.throw(_("Fleet local storage protection is unavailable. Contact support."))
+	scope = json.dumps([frappe.local.site, user], ensure_ascii=False).encode()
+	key = digest(root.encode(), b"goods_transport:fleet:v1:" + scope, "sha512")
+	frappe.local.response_headers["Cache-Control"] = "private, no-store"
+	return {"user": user, "material": b64encode(key).decode()}
+
+
 def _project_trip(trip, assignment):
 	locations = []
 	stored_plan = json.loads(trip.fuel_plan_inputs or "{}")
@@ -73,11 +102,37 @@ def _project_trip(trip, assignment):
 		fields=AUTHORIZATION_FIELDS,
 		order_by="valid_from asc, creation asc",
 	)
+	for authorization in authorizations:
+		station = frappe.db.get_value("Fuel Partner Station", {
+			"name": authorization.station, "company": assignment["company"],
+		}, ["station_name", "latitude", "longitude"], as_dict=True)
+		if station:
+			authorization.update(station)
 	forecast = stored_plan.get("confirmed_forecast") or {}
 	stop_fields = ("station", "latitude", "longitude", "refill_liters")
 	stops = [{field: stop.get(field) for field in stop_fields} for stop in forecast.get("stops", [])]
 	result = {field: trip.get(field) for field in TRIP_FIELDS}
-	return {**result, "locations": locations, "fuel_stops": stops, "authorizations": authorizations}
+	controls = trip_inspection.policy(trip).get("controls", []) if frappe.db.table_exists("Trip Vehicle Inspection") else []
+	def inspected(phase):
+		return bool(controls and frappe.db.exists("Trip Vehicle Inspection", {
+			"trip": trip.name, "phase": phase, "docstatus": 1,
+			"vehicle": trip.vehicle, "driver": assignment["driver"],
+		}))
+
+	deliveries = _delivery_rows(trip.name, assignment["company"]) if trip.status in (
+		"Vehicle Assigned", "At Loading Point", "Loaded", "In Transit", "Arrived", "Unloading", "Delivered",
+	) else []
+	can_finish_deliveries = trip.status == "Unloading" and all(
+		row.delivery_state == "complete" or (not row.proof and not row.pod_required)
+		for row in deliveries
+	) and not frappe.db.exists("Bilty", {"transport_trip": trip.name, "docstatus": 0})
+	return {
+		**result, "locations": locations, "fuel_stops": stops, "authorizations": authorizations,
+		"deliveries": deliveries, "can_finish_deliveries": can_finish_deliveries,
+		"inspection_configured": bool(controls), "departure_inspected": inspected("Departure"),
+		"return_inspected": inspected("Return"), "inspection_controls": controls,
+		"driver_finished": bool(trip.status == "Delivered" and _field_event_exists(trip, "finished", assignment["driver"])),
+	}
 
 
 @frappe.whitelist(methods=["GET"])
@@ -85,8 +140,11 @@ def missions():
 	assignment = _assignment()
 	if assignment is None:
 		frappe.throw(_("Fleet Driver access is unavailable."), frappe.PermissionError)
+	fields = [*TRIP_FIELDS, "fuel_plan_inputs"]
+	if frappe.get_meta("Transport Trip").has_field("inspection_policy"):
+		fields.append("inspection_policy")
 	rows = frappe.get_all(
-		"Transport Trip", filters=assignment, fields=(*TRIP_FIELDS, "fuel_plan_inputs"),
+		"Transport Trip", filters=assignment, fields=fields,
 		order_by="trip_date desc, name desc",
 	)
 	return {
@@ -173,19 +231,119 @@ def _assigned_trip(name, lock=False):
 	return trip
 
 
+def _field_event_exists(trip, event, driver):
+	return frappe.db.exists("Comment", {
+		"reference_doctype": "Transport Trip", "reference_name": trip.name,
+		"content": f"Fleet Driver · {event} · {driver}",
+	})
+
+
+@frappe.whitelist(methods=["POST"])
+def record_field_event(trip: str, event: str):
+	from ..doctype.transport_trip.transport_trip import _advance_status
+	from . import trip_inspection
+	from .fleet_availability import validate_assignment
+
+	doc = _assigned_trip(trip, lock=True)
+	if event not in FIELD_EVENTS:
+		frappe.throw(_("Unknown driver event."))
+	source, target = FIELD_EVENTS[event]
+	if _field_event_exists(doc, event, doc.driver):
+		return doc.status
+	if doc.status != source:
+		frappe.throw(_("The mission has moved to another step. Refresh it before continuing."))
+	if event in ("loaded", "departed"):
+		trip_inspection.check_departure(doc)
+	if event in ("at_loading", "loaded"):
+		validate_assignment(doc)
+	if target:
+		_advance_status(doc, target)
+	else:
+		doc.validate_delivery()
+		trip_inspection.check_return(doc)
+	doc.add_comment(text=f"Fleet Driver · {event} · {doc.driver}")
+	return doc.status
+
+
 @frappe.whitelist(methods=["GET"])
 def delivery_documents(trip: str):
 	trip = _assigned_trip(trip)
+	return _delivery_rows(trip.name, trip.company)
+
+
+def _delivery_rows(trip, company):
 	rows = frappe.get_all(
-		"Bilty", filters={"transport_trip": trip.name, "company": trip.company, "docstatus": 1},
-		fields=["name", "total_quantity"],
+		"Bilty", filters={"transport_trip": trip, "company": company, "docstatus": 1},
+		fields=["name", "total_quantity", "pod_required", "pod_status", "customer_name", "customer", "consignee", "destination", "status"],
+		order_by="creation asc",
 	)
 	for row in rows:
 		row.items = frappe.get_all(
 			"Bilty Item", filters={"parent": row.name, "parenttype": "Bilty", "parentfield": "items"},
-			fields=["item", "description", "quantity"], order_by="idx asc",
+			fields=["item", "description", "quantity", "uom"], order_by="idx asc",
 		)
+		row.destination = frappe.db.get_value("Transport Location", row.destination, "location_name") or row.destination
+		proof = frappe.db.get_value("Proof of Delivery", {"bilty": row.name, "docstatus": 1},
+			["delivered_quantity", "short_quantity", "damaged_quantity"], as_dict=True)
+		row.proof = proof
+		row.delivery_state = "pending"
+		if proof:
+			row.delivery_state = "complete" if abs(flt(proof.delivered_quantity) - flt(row.total_quantity)) <= 1e-9 else "partial"
+		elif row.status in ("Billed", "Closed", "Cancelled"):
+			row.delivery_state = "unavailable"
 	return rows
+
+
+@frappe.whitelist(methods=["POST"])
+def sync_operation(trip: str, operation: str, operation_id: str, captured_at: str, expected_user: str, vehicle: str):
+	"""Replay one field operation after rechecking the current assignment and business rules."""
+	from datetime import datetime
+	from uuid import UUID
+
+	try:
+		if str(UUID(operation_id)) != operation_id:
+			raise ValueError
+		captured = datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+		if not captured.tzinfo:
+			raise ValueError
+	except (ValueError, TypeError):
+		frappe.throw(_("Invalid offline operation identifier or time."))
+	doc = _assigned_trip(trip, lock=True)
+	if expected_user != frappe.session.user or vehicle != doc.vehicle:
+		frappe.throw(_("The session or vehicle assignment changed."), frappe.PermissionError)
+	form = frappe.form_dict
+	receipt = f"Fleet Sync · {operation_id} · {doc.driver} · {captured.isoformat()}"
+	if frappe.db.exists("Comment", {
+		"reference_doctype": doc.doctype, "reference_name": doc.name, "content": receipt,
+	}):
+		return "validated"
+	if operation == "record_field_event":
+		record_field_event(trip, form.get("event"))
+	elif operation == "confirm_delivery":
+		if frappe.db.exists("Proof of Delivery", {"trip": trip, "bilty": form.get("bilty"), "docstatus": 1}):
+			frappe.throw(_("This delivery was already confirmed. Review the existing proof."))
+		confirm_delivery(trip, form.get("bilty"), form.get("delivered_quantity"),
+			form.get("damaged_quantity", 0), form.get("receiver_name", ""), form.get("remarks", ""))
+	elif operation in ("report_incident", "report_critical_incident"):
+		service = report_incident if operation == "report_incident" else report_critical_incident
+		service(trip, form.get("category", ""), form.get("description", ""))
+	elif operation == "validate_inspection":
+		phase = form.get("phase")
+		inspection = trip_inspection._open_inspection(trip, phase, authorize=_authorize_trip)
+		if inspection["submitted"]:
+			frappe.throw(_("This inspection was already validated. Review the existing inspection."))
+		results = frappe.parse_json(form.get("results"))
+		if not isinstance(results, dict) or set(results) != {control["code"] for control in inspection["controls"]}:
+			frappe.throw(_("The checklist changed. Start a new inspection."))
+		uploads = frappe.request.files
+		for control in results:
+			for upload in uploads.getlist(f"photo:{control}"):
+				trip_inspection._upload_photo(inspection["name"], control, authorize=_authorize_trip, upload=upload)
+		validate_inspection(inspection["name"], form.get("odometer"), results, form.get("observations"))
+	else:
+		frappe.throw(_("Unknown offline operation."))
+	doc.add_comment(text=receipt)
+	return "validated"
 
 
 def _attach_evidence(doc, upload, field=None):
@@ -259,6 +417,9 @@ def report_incident(trip: str, category: str, description: str):
 		"material_damage": _("Material damage"),
 		"loading": _("Loading problem"),
 		"trip_difficulty": _("Difficulty during the trip"),
+		"tyre": _("Tyre problem"),
+		"accident": _("Accident"),
+		"other": _("Other incident"),
 	}
 	description = description.strip()
 	if category not in categories or not description or len(description) > 2000:
@@ -288,7 +449,7 @@ def report_critical_incident(trip: str, category: str, description: str):
 	from .fleet_odometer import lock_vehicle
 
 	trip = _assigned_trip(trip, lock=True)
-	if category not in ("Breakdown", "Other") or not description.strip():
+	if category not in ("Breakdown", "Other") or not description.strip() or len(description) > 2000:
 		frappe.throw(_("Select a category and describe the incident."))
 	if trip.status in ("Delivered", "Settled", "Closed", "Cancelled"):
 		frappe.throw(_("This trip is already finished."))

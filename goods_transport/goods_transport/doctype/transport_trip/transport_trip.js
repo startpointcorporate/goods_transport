@@ -65,10 +65,15 @@ frappe.ui.form.on("Transport Trip", {
 		if (active && frappe.model.can_create("Bilty")) {
 			frm.add_custom_button(
 				__("Bilty"),
-				() => {
-					let d;
+				async () => {
 					const allocations = frm.doc.order_allocations || [];
 					const order = allocations.length === 1 ? allocations[0].transport_order : "";
+					let suggested;
+					if (order && frappe.model.can_read("Transport Order")) {
+						const { message } = await frappe.db.get_value("Transport Order", order, ["customer", "status"]);
+						if (message && PENDING_ORDER_STATUSES.includes(message.status)) suggested = message;
+					}
+					let d;
 					d = new frappe.ui.Dialog({
 						title: __("Create Bilty under {0}", [frm.doc.name]),
 						fields: [
@@ -78,9 +83,10 @@ frappe.ui.form.on("Transport Trip", {
 								fieldtype: "Link",
 								options: "Customer",
 								reqd: 1,
+								default: suggested?.customer,
 								onchange: () => {
-									// Reset order — old value would belong to the previous customer.
-									if (d.get_value("transport_order")) {
+									const selected = d?.get_value("transport_order");
+									if (selected && !(selected === order && d.get_value("customer") === suggested?.customer)) {
 										d.set_value("transport_order", "");
 									}
 								},
@@ -90,11 +96,12 @@ frappe.ui.form.on("Transport Trip", {
 								label: __("Transport Order"),
 								fieldtype: "Link",
 								options: "Transport Order",
+								default: suggested ? order : undefined,
 								description: __(
 									"Only submitted, still-open orders (Confirmed / Partially Dispatched / Fully Dispatched) for the selected customer are shown.",
 								),
 								get_query: () => {
-									const customer = d.get_value("customer");
+									const customer = d ? d.get_value("customer") : suggested?.customer;
 									const filters = {
 										docstatus: 1,
 										status: ["in", PENDING_ORDER_STATUSES],
@@ -134,7 +141,7 @@ frappe.ui.form.on("Transport Trip", {
 									customer: v.customer,
 									transport_order: v.transport_order,
 									freight_item: v.freight_item,
-									...(!v.transport_order && {
+									...(!v.transport_order && !order && {
 										rate: v.rate, rate_basis: v.rate_basis, freight_quantity: v.freight_quantity,
 									}),
 								},
@@ -149,14 +156,6 @@ frappe.ui.form.on("Transport Trip", {
 						},
 					});
 					d.show();
-					if (order && frappe.model.can_read("Transport Order")) {
-						frappe.db.get_value("Transport Order", order, ["customer", "status"]).then(async ({ message }) => {
-							if (!message || !PENDING_ORDER_STATUSES.includes(message.status)
-								|| d.get_value("customer") || d.get_value("transport_order")) return;
-							await d.set_value("customer", message.customer);
-							await d.set_value("transport_order", order);
-						});
-					}
 				},
 				__("Create"),
 			);

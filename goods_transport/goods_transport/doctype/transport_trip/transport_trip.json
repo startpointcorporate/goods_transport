@@ -31,6 +31,7 @@
   "column_break_r1",
   "via",
   "planned_cargo_weight",
+  "planned_cargo_volume",
   "order_allocations",
   "planned_distance",
   "actual_distance",
@@ -56,6 +57,8 @@
   "completion_time",
   "load_section",
   "loaded_weight",
+  "loaded_cargo_volume",
+  "volume_utilization",
   "bilty_count",
   "column_break_l1",
   "capacity_utilization",
@@ -74,6 +77,9 @@
   "remarks"
  ],
  "fields": [
+  {"fieldname": "volume_utilization", "fieldtype": "Percent", "label": "Volume Utilization (%)", "non_negative": 1, "read_only": 1, "no_copy": 1},
+  {"fieldname": "loaded_cargo_volume", "fieldtype": "Float", "label": "Loaded Cargo Volume (m³)", "non_negative": 1, "read_only": 1, "no_copy": 1},
+  {"fieldname": "planned_cargo_volume", "fieldtype": "Float", "label": "Planned Cargo Volume (m³)", "non_negative": 1, "read_only_depends_on": "eval:doc.order_allocations && doc.order_allocations.length"},
   {
    "default": "TRIP-.YYYY.-.#####",
    "fieldname": "naming_series",

@@ -8,6 +8,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, today
 
+from goods_transport.goods_transport.services.cargo_measurements import assigned_measurements
 from goods_transport.goods_transport.services.freight import CARGO_BASES, billable_quantity
 
 
@@ -49,7 +50,7 @@ def create_trip_from_order(transport_order: str, vehicle: str, quantity: float |
 @frappe.whitelist(methods=["POST"])
 def create_bilty_from_trip(
 	transport_trip: str,
-	customer: str,
+	customer: str | None = None,
 	transport_order: str | None = None,
 	freight_item: str | None = None,
 	rate: float | None = None,
@@ -60,6 +61,8 @@ def create_bilty_from_trip(
 	from the Trip and, when given, the Order."""
 	trip = frappe.get_doc("Transport Trip", transport_trip)
 	trip.check_permission("read")
+	if not transport_order and len(trip.order_allocations) == 1:
+		transport_order = trip.order_allocations[0].transport_order
 	order = None
 	if transport_order:
 		order = frappe.get_doc("Transport Order", transport_order)
@@ -70,7 +73,7 @@ def create_bilty_from_trip(
 	bilty = frappe.new_doc("Bilty")
 	bilty.company = trip.company
 	bilty.bilty_date = today()
-	bilty.customer = customer
+	bilty.customer = customer or (order.customer if order else None)
 	bilty.transport_trip = trip.name
 	bilty.transport_order = transport_order
 	bilty.origin = order.origin if order else trip.origin
@@ -93,17 +96,17 @@ def create_bilty_from_trip(
 		if cargo_quantity <= 0:
 			frappe.throw(_("The linked order has no quantity available for dispatch."))
 		full_cargo = cargo_quantity == flt(order.quantity)
-		ratio = cargo_quantity / flt(order.quantity) if order.quantity else 0
+		weight, volume = assigned_measurements(order, cargo_quantity, allocation)
 		if order.commodity:
 			bilty.append("items", {
 				"item": order.commodity, "quantity": cargo_quantity, "uom": order.uom,
-				"description": order.description, "gross_weight": flt(order.weight) * ratio,
+				"description": order.description, "gross_weight": weight, "cargo_volume": volume,
 				"packages": order.package_count if full_cargo else None,
 			})
 		if freight_quantity is None:
 			bilty.bill_from_cargo = bool(bilty.items) and rate_basis in CARGO_BASES
 			freight_quantity = billable_quantity(
-				rate_basis, weight_kg=flt(order.weight) * ratio,
+				rate_basis, weight_kg=weight,
 				packages=order.package_count if full_cargo else 0, distance_km=order.estimated_distance,
 			)
 

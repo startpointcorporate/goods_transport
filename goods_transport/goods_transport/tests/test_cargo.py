@@ -207,7 +207,7 @@ class TestBiltyCargoValidation(unittest.TestCase):
 				"freight_quantity": 1,
 			}
 		)
-		bilty.append("items", {"item": item_code, "quantity": 1, "uom": "Kg", "gross_weight": 1000})
+		bilty.append("items", {"item": item_code, "quantity": 1000, "uom": "Kg", "gross_weight": 1000})
 		return bilty
 
 	def test_accepts_cargo_item_row(self):
@@ -278,7 +278,7 @@ class TestBillingStillWorks(unittest.TestCase):
 		)
 		bilty.append(
 			"items",
-			{"item": CARGO_SAMPLE, "quantity": 3, "uom": "Kg", "gross_weight": 3000},
+			{"item": CARGO_SAMPLE, "quantity": 3000, "uom": "Kg", "gross_weight": 3000},
 		)
 		bilty.append(
 			"charges",

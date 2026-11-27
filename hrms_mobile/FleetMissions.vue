@@ -3,9 +3,35 @@
 		<ion-header><ion-toolbar><ion-title>{{ labels.trips }}</ion-title></ion-toolbar></ion-header>
 		<ion-content>
 			<div class="flex flex-col gap-4 p-4 pb-16">
-				<RouterLink v-if="!offline" :to="{ name: 'Home' }" class="underline">{{ labels.hr }}</RouterLink>
-				<p v-if="offline" role="status">{{ labels.offline }}</p>
+				<nav class="flex flex-wrap gap-2" :aria-label="labels.trips">
+					<button class="fleet-button" :disabled="busy" @click="openMission(primaryMission(trips))">{{ french ? "Ma mission" : "My mission" }}</button>
+					<button class="fleet-button" :disabled="busy" @click="openMission(null)">{{ labels.trips }}</button>
+					<RouterLink v-if="!offline" :to="{ name: 'Home', query: { space: 'hr' } }" class="fleet-button">{{ labels.hr }}</RouterLink>
+				</nav>
+				<div v-if="offline" class="flex flex-wrap items-center gap-2">
+					<p role="status">{{ locked ? (french ? "Reconnectez-vous pour déverrouiller les données Fleet." : "Connect to unlock Fleet data.") : labels.offline }}</p>
+					<button v-if="offlineShell" class="fleet-button" :disabled="reconnecting" @click="reconnect">
+						{{ french ? "Réessayer la connexion" : "Retry connection" }}
+					</button>
+				</div>
 				<p v-if="lastSync">{{ labels.synced }} {{ lastSync }}</p>
+				<details v-if="outbox.length" class="rounded border p-3">
+					<summary class="fleet-button">{{ french ? "Opérations sur le téléphone" : "Operations on this phone" }} · {{ outbox.length }}</summary>
+					<div v-for="entry in outbox" :key="entry.id" class="flex flex-wrap items-center gap-2 border-t py-2">
+						<span>{{ entry.trip }} · {{ operationLabel(entry) }} · {{ outboxLabels[entry.status] }}</span>
+						<p v-if="entry.status === 'error'" role="alert">{{ entry.error || (french ? "Le serveur a refusé cette opération. Vérifiez la mission et vos droits." : "The server refused this operation. Check the mission and your access.") }}</p>
+						<p v-if="entry.method === 'report_critical_incident' && entry.status !== 'validated'" role="alert">
+							{{ french ? "La réception de cette déclaration par l’exploitation n’est pas confirmée. Contactez-la directement si nécessaire." : "Receipt by dispatch has not been confirmed. Contact them directly if needed." }}
+						</p>
+						<button v-if="entry.status === 'error' && entry.method !== 'record_field_event' && trips.some(trip => trip.name === entry.trip)"
+							class="fleet-button" :disabled="outboxBusy" @click="editOperation(entry)">{{ french ? "Corriger" : "Edit" }}</button>
+						<button v-if="entry.status === 'error'" class="fleet-button" :disabled="outboxBusy"
+							@click="retry(entry)">{{ french ? "Réessayer" : "Retry" }}</button>
+						<button v-if="['error', 'validated'].includes(entry.status)" class="fleet-button" :disabled="outboxBusy"
+							@click="discard(entry)">{{ french ? "Retirer" : "Remove" }}</button>
+					</div>
+				</details>
+				<p v-if="outboxError" role="alert">{{ outboxError }}</p>
 				<p v-if="loading" role="status">{{ labels.loading }}</p>
 				<p v-else-if="error" role="alert">{{ error }}</p>
 				<template v-else>
@@ -20,7 +46,7 @@
 						<button
 							v-for="trip in visibleTrips" :key="trip.name"
 							class="flex flex-col gap-1 rounded-lg border p-4 text-start"
-							@click="selected = trip"
+							@click="openMission(trip)"
 						>
 							<strong>{{ trip.name }}</strong>
 							<span>{{ trip.origin }} → {{ trip.destination }}</span>
@@ -29,39 +55,61 @@
 						</button>
 					</template>
 					<article v-else class="flex flex-col gap-3">
-						<button class="self-start underline" @click="selected = null">{{ labels.back }}</button>
+						<button class="self-start underline" @click="openMission(null)">{{ labels.back }}</button>
 						<h2 class="text-lg font-semibold">{{ selected.name }}</h2>
 						<p>{{ selected.vehicle_license_plate || selected.vehicle }} · {{ tripStatus(selected.status) }}</p>
 						<p>{{ selected.origin }} → {{ selected.destination }}</p>
 						<p>{{ selected.planned_departure_at || selected.trip_date }} / {{ selected.planned_return_at || "—" }}</p>
-						<h3 class="font-semibold">{{ labels.road }}</h3>
-						<div v-for="location in selected.locations" :key="location.name" class="rounded border p-3">
-							<p>{{ location.location_name }}</p>
-							<p>{{ location.address }}</p>
-							<a v-if="navigationUrl(location)" :href="navigationUrl(location)" class="underline">
-								{{ labels.navigate }}
-							</a>
-						</div>
-						<template v-if="selected.fuel_stops.length">
-							<h3 class="font-semibold">{{ labels.fuelStops }}</h3>
-							<div v-for="(stop, index) in selected.fuel_stops" :key="index" class="rounded border p-3">
-								<p>{{ stop.station }} · {{ stop.refill_liters }} L</p>
-								<a v-if="navigationUrl(stop)" :href="navigationUrl(stop)" class="underline">
+						<p v-if="notice" role="status">{{ notice }}</p>
+						<button v-if="action && !panel" class="fleet-button bg-gray-900 text-white"
+							:disabled="busy" @click="performAction">{{ actionLabels[action] }}</button>
+						<FleetInspection v-if="['Departure', 'Return'].includes(panel)" :key="selected.name + panel + (correction?.id || '')"
+							:mission="selected" :phase="panel" :french="french" :correction="correction" :submitting="outboxBusy" @validate="submitOperation" />
+						<FleetOperations v-if="['delivery', 'incident'].includes(panel) || (!offline && panel === 'fuel')"
+							:key="selected.name + panel + (correction?.id || '')" :initial-panel="panel" :cached-deliveries="selected.deliveries || []" :trip="selected.name" :french="french"
+							:can-deliver="['Arrived', 'Unloading', 'Delivered'].includes(selected.status)" :completing="busy"
+							:can-complete="Boolean(selected.can_finish_deliveries)" :correction="correction" :submitting="outboxBusy" @complete="recordEvent('delivered')" @validate="submitOperation" />
+						<button v-if="panel" class="fleet-button self-start" @click="panel = ''; correction = null">{{ french ? "Retour à la mission" : "Back to mission" }}</button>
+						<details class="rounded border p-3">
+							<summary class="fleet-button">{{ labels.road }}</summary>
+							<p>{{ french ? "Plan poids lourd. Le guidage externe peut proposer un autre trajet." : "Truck route plan. External navigation may suggest a different route." }}</p>
+							<div v-for="location in selected.locations" :key="location.name" class="rounded border p-3">
+								<p>{{ location.location_name }}</p>
+								<p>{{ location.address }}</p>
+								<a v-if="navigationUrl(location)" :href="navigationUrl(location)" class="underline">
 									{{ labels.navigate }}
 								</a>
 							</div>
-						</template>
-						<h3 class="font-semibold">{{ labels.fuel }}</h3>
-						<p v-if="!selected.authorizations.length">{{ labels.noFuel }}</p>
-						<div v-for="(authorization, index) in selected.authorizations" :key="index" class="rounded border p-3">
-							<p>{{ authorization.station }} · {{ authorization.fuel_type }}</p>
-							<p>{{ authorization.authorized_liters }} L · {{ tripStatus(authorization.status) }}</p>
-							<p>{{ authorization.valid_until }}</p>
+							<template v-if="selected.fuel_stops.length">
+								<h3 class="font-semibold">{{ labels.fuelStops }}</h3>
+								<div v-for="(stop, index) in selected.fuel_stops" :key="index" class="rounded border p-3">
+									<p>{{ stop.station }} · {{ stop.refill_liters }} L</p>
+									<a v-if="navigationUrl(stop)" :href="navigationUrl(stop)" class="underline">
+										{{ labels.navigate }}
+									</a>
+								</div>
+							</template>
+						</details>
+						<details class="rounded border p-3">
+							<summary class="fleet-button">{{ labels.fuel }}</summary>
+							<p v-if="!selected.authorizations.length">{{ labels.noFuel }}</p>
+							<div v-for="(authorization, index) in selected.authorizations" :key="index" class="rounded border p-3">
+								<p>{{ authorization.station_name || authorization.station }} · {{ authorization.fuel_type }}</p>
+								<p>{{ authorization.authorized_liters }} L · {{ tripStatus(authorization.status) }}</p>
+								<p>{{ authorization.valid_from }} → {{ authorization.valid_until }}</p>
+								<a v-if="navigationUrl(authorization)" :href="navigationUrl(authorization)" class="underline">{{ labels.navigate }}</a>
+							</div>
+							<button v-if="!offline" class="fleet-button" @click="panel = 'fuel'">{{ french ? "Consulter l’autorisation active" : "View active authorization" }}</button>
+						</details>
+						<details class="rounded border p-3">
+							<summary class="fleet-button">{{ french ? "Documents et péages" : "Documents and tolls" }}</summary>
+							<FleetRoadDocuments :key="selected.name" :trip="selected" :french="french" :offline="offline" />
+							<FleetPrivateDocuments :key="selected.name + ':files'" :trip="selected" :french="french" :offline="offline" />
+						</details>
+						<div class="flex flex-wrap gap-2">
+							<button class="fleet-button" :disabled="busy" @click="panel = 'delivery'">{{ french ? "Marchandises et livraisons" : "Cargo and deliveries" }}</button>
+							<button class="fleet-button" :disabled="busy" @click="panel = 'incident'">{{ french ? "Signaler un incident" : "Report an incident" }}</button>
 						</div>
-						<FleetRoadDocuments :key="selected.name" :trip="selected" :french="french" :offline="offline" />
-						<FleetPrivateDocuments :key="selected.name + ':files'" :trip="selected" :french="french" :offline="offline" />
-						<FleetInspection v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
-						<FleetOperations v-if="!offline" :key="selected.name" :trip="selected.name" :french="french" />
 					</article>
 				</template>
 			</div>
@@ -70,11 +118,14 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, onUnmounted, ref } from "vue"
+import { computed, inject, onMounted, onUnmounted, ref, shallowRef } from "vue"
 import { RouterLink } from "vue-router"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/vue"
 import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offline"
+import { nextStep, primaryMission } from "./missionFlow.mjs"
+import { discardFleetOperation, enqueueFleetOperation, outboxChangeKey, readFleetOutbox, retryFleetOperation, syncFleetOutbox } from "./fleetOutbox"
 import { getFleetData } from "./fleetApi"
+import { fleetVaultUnlocked, unlockFleetVault, vaultSessionKey } from "./fleetVault"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
 import FleetRoadDocuments from "./FleetRoadDocuments.vue"
@@ -82,22 +133,155 @@ import FleetPrivateDocuments from "./FleetPrivateDocuments.vue"
 
 const offlineShell = Boolean(window.frappe?.boot?.fleet_offline)
 const offline = ref(offlineShell || !navigator.onLine)
+const locked = ref(!fleetVaultUnlocked())
+const reconnecting = ref(false)
 const french = (readFleetSnapshot()?.lang || document.documentElement.lang || navigator.language).startsWith("fr")
 const tripStatus = inject("$translate")
 const labels = french ? {
-	trips: "Mes missions", hr: "Espace RH", loading: "Chargement des missions…", filter: "Filtrer les missions",
+	trips: "Mes missions", hr: "Mon espace RH", loading: "Chargement des missions…", filter: "Filtrer les missions",
 	all: "Toutes", upcoming: "À venir", active: "En cours", finished: "Terminées",
 	empty: "Aucune mission dans cette catégorie.", back: "Toutes les missions",
 	road: "Feuille de route", fuelStops: "Arrêts carburant", navigate: "Ouvrir la navigation", fuel: "Autorisations de carburant",
-	offline: "Hors ligne. Les opérations nécessitent une connexion.", synced: "Dernière synchronisation",
+	offline: "Hors ligne. Vous pouvez préparer des brouillons.", synced: "Dernière synchronisation",
 	noFuel: "Aucune autorisation de carburant.", unavailable: "Les missions sont indisponibles.",
 } : {
 	trips: "My trips", hr: "HR home", loading: "Loading trips…", filter: "Filter trips",
 	all: "All", upcoming: "Upcoming", active: "In progress", finished: "Completed",
 	empty: "No trips in this category.", back: "All trips", road: "Road sheet", fuelStops: "Fuel stops",
 	navigate: "Open navigation", fuel: "Fuel authorizations", noFuel: "No fuel authorizations.",
-	offline: "Offline. Operations require a connection.", synced: "Last sync",
+	offline: "Offline. You can prepare drafts.", synced: "Last sync",
 	unavailable: "Trips are unavailable.",
+}
+
+const actionLabels = french ? {
+	Departure: "Faire l’état des lieux de départ", Return: "Faire l’état des lieux de retour",
+	at_loading: "Je suis au point de chargement", loaded: "Le chargement est terminé",
+	departed: "Je prends la route", arrived: "Je suis arrivé", unloaded: "Le déchargement est terminé",
+	delivery: "Confirmer les livraisons", finished: "Je termine ma mission",
+} : {
+	Departure: "Start departure inspection", Return: "Start return inspection",
+	at_loading: "I am at the loading point", loaded: "Loading is complete",
+	departed: "I am leaving", arrived: "I have arrived", unloaded: "Unloading is complete",
+	delivery: "Confirm deliveries", finished: "Finish my mission",
+}
+const outbox = shallowRef([])
+const outboxBusy = ref(false)
+const outboxError = ref("")
+const outboxLabels = french ? {
+	pending: "En attente de synchronisation", validated: "Validé", error: "En erreur",
+} : { pending: "Pending sync", validated: "Validated", error: "Sync error" }
+
+function operationLabel(entry) {
+	if (entry.method === "record_field_event") return actionLabels[entry.entries.find(([key]) => key === "event")?.[1]] || (french ? "Étape terrain" : "Field event")
+	if (entry.method === "validate_inspection") return french ? "État des lieux" : "Inspection"
+	if (entry.method === "confirm_delivery") return french ? "Preuve de livraison" : "Proof of delivery"
+	return french ? "Incident" : "Incident"
+}
+
+let outboxRead = 0
+async function loadOutbox() {
+	const current = ++outboxRead
+	try {
+		const records = await readFleetOutbox()
+		if (current === outboxRead) outbox.value = fleetVaultUnlocked() ? records : []
+	} catch (error) {
+		if (current === outboxRead && fleetVaultUnlocked()) {
+			outboxError.value = french ? "Impossible de lire certaines opérations conservées sur ce téléphone."
+				: "Some operations stored on this phone could not be read."
+		}
+		throw error
+	}
+}
+
+async function manageOutbox(operation) {
+	if (outboxBusy.value) return
+	outboxBusy.value = true
+	outboxError.value = ""
+	try {
+		await operation()
+		await loadOutbox()
+	} catch {
+		outboxError.value = french ? "Impossible d’accéder aux opérations sur le téléphone." : "Could not access operations on this phone."
+	} finally {
+		outboxBusy.value = false
+	}
+}
+
+function showUpdatedOperation() {
+	outboxError.value = french ? "Cette opération a changé dans un autre onglet. Consultez son état actuel."
+		: "This operation changed in another tab. Check its current status."
+}
+
+const discard = entry => manageOutbox(async () => {
+	if (entry.status === "error" && !window.confirm(french ? "Retirer cette opération non transmise et ses photos ?" : "Remove this unsent operation and its photos?")) return
+	if (!await discardFleetOperation(entry)) showUpdatedOperation()
+})
+const syncOutbox = () => manageOutbox(async () => {
+	await syncFleetOutbox()
+	await refresh()
+})
+const retry = entry => manageOutbox(async () => {
+	if (!await retryFleetOperation(entry)) return showUpdatedOperation()
+	await syncFleetOutbox()
+	await refresh()
+})
+
+const correction = shallowRef(null)
+function editOperation(entry) {
+	const trip = trips.value.find(mission => mission.name === entry.trip)
+	if (!trip) return
+	openMission(trip)
+	correction.value = entry
+	panel.value = entry.method === "validate_inspection" ? entry.entries.find(([name]) => name === "phase")?.[1]
+		: entry.method === "confirm_delivery" ? "delivery" : "incident"
+}
+
+function submitOperation(method, body) {
+	return manageOutbox(async () => {
+		const submitted = await enqueueFleetOperation(selected.value, method, body, correction.value)
+		if (!submitted) return showUpdatedOperation()
+		correction.value = null
+		panel.value = ""
+		lastOperation.value = submitted.id
+		await loadOutbox()
+		await syncFleetOutbox()
+		await loadOutbox()
+		await refresh()
+	})
+}
+
+const panel = ref("")
+const busy = computed(() => outboxBusy.value)
+const lastOperation = ref(null)
+const notice = computed(() => {
+	const entry = outbox.value.find(record => record.id === lastOperation.value)
+	if (!entry) return ""
+	if (entry.status === "error") return entry.error || outboxLabels.error
+	if (entry.method === "report_critical_incident" && entry.status !== "validated") {
+		return french ? "Réception par l’exploitation non confirmée. Contactez-la directement si nécessaire."
+			: "Receipt by dispatch is unconfirmed. Contact them directly if needed."
+	}
+	return outboxLabels[entry.status]
+})
+let initial = true
+let retryTimer
+
+function openMission(trip) {
+	initial = false
+	selected.value = trip
+	correction.value = null
+	panel.value = ""
+	lastOperation.value = null
+}
+
+const action = computed(() => selected.value && nextStep(selected.value))
+function performAction() {
+	if (["Departure", "Return", "delivery"].includes(action.value)) panel.value = action.value
+	else void recordEvent(action.value)
+}
+
+function recordEvent(event) {
+	return submitOperation("record_field_event", { event })
 }
 
 const trips = ref([])
@@ -110,16 +294,17 @@ const filters = ["all", "upcoming", "active", "finished"]
 const filter = ref("all")
 const visibleTrips = computed(() => trips.value.filter(trip => {
 	if (filter.value === "all") return true
-	const category = ["Delivered", "Settled", "Closed"].includes(trip.status)
-		? "finished"
-		: ["At Loading Point", "Loaded", "In Transit", "Arrived", "Unloading"].includes(trip.status)
-			? "active" : "upcoming"
+	const category = trip.status === "Vehicle Assigned" ? "upcoming" : nextStep(trip) ? "active" : "finished"
 	return category === filter.value
 }))
 
 function showSnapshot(snapshot) {
 	trips.value = snapshot?.trips || []
 	selected.value = trips.value.find(trip => trip.name === selected.value?.name) || null
+	if (initial && snapshot) {
+		selected.value = primaryMission(trips.value)
+		initial = false
+	}
 	lastSync.value = snapshot?.savedAt ? new Date(snapshot.savedAt).toLocaleString() : ""
 	error.value = snapshot ? "" : labels.unavailable
 }
@@ -133,10 +318,15 @@ async function refresh() {
 		return
 	}
 	try {
+		await unlockFleetVault()
+		if (current !== request) return
+		locked.value = !fleetVaultUnlocked()
+		if (locked.value) throw new Error("Fleet storage is locked")
 		const snapshot = await getFleetData("missions")
 		if (current !== request) return
-		showSnapshot({ ...snapshot, savedAt: Date.now() })
+		if (!fleetVaultUnlocked()) return
 		void saveFleetSnapshot(snapshot)
+		showSnapshot(readFleetSnapshot())
 	} catch (failure) {
 		if (current !== request) return
 		if (failure instanceof TypeError) {
@@ -144,7 +334,9 @@ async function refresh() {
 			showSnapshot(readFleetSnapshot())
 		} else {
 			purgeFleetSnapshot()
+			locked.value = true
 			showSnapshot(null)
+			if (failure.businessMessage) error.value = failure.businessMessage
 		}
 	} finally {
 		if (current === request) loading.value = false
@@ -154,39 +346,72 @@ async function refresh() {
 async function reconnect() {
 	if (!offlineShell) {
 		await refresh()
+		if (!offline.value) await syncOutbox()
 		return
 	}
 	// Rebuild the session only once requests can reach Frappe again.
-	for (let attempt = 0; attempt < 3 && navigator.onLine; attempt++) {
-		try {
-			await getFleetData("available")
-			window.location.reload()
-			return
-		} catch (error) {
-			if (!(error instanceof TypeError)) {
+	if (reconnecting.value) return
+	reconnecting.value = true
+	try {
+		for (let attempt = 0; attempt < 3; attempt++) {
+			try {
+				await getFleetData("available")
 				window.location.reload()
 				return
+			} catch (error) {
+				if (!(error instanceof TypeError)) {
+					window.location.reload()
+					return
+				}
+				await new Promise(resolve => setTimeout(resolve, 350))
 			}
-			await new Promise(resolve => setTimeout(resolve, 350))
 		}
+	} finally {
+		reconnecting.value = false
 	}
 }
 
-function storageChanged() {
+function storageChanged(event) {
+	if (event.key === vaultSessionKey) {
+		request++
+		outboxRead++
+		purgeFleetSnapshot()
+		locked.value = true
+		outbox.value = []
+		showSnapshot(null)
+		openMission(null)
+		window.location.reload()
+		return
+	}
+	if (event.key === outboxChangeKey) {
+		void loadOutbox().catch(() => {})
+		if (!offline.value && !outboxBusy.value) void refresh()
+		return
+	}
 	if (offline.value) showSnapshot(readFleetSnapshot())
+	void loadOutbox().catch(() => {})
 }
 
 onMounted(() => {
 	window.addEventListener("online", reconnect)
 	window.addEventListener("offline", refresh)
 	window.addEventListener("storage", storageChanged)
-	void refresh()
+	window.addEventListener("focus", reconnect)
+	retryTimer = window.setInterval(() => {
+		if (navigator.onLine && !offlineShell && outbox.value.some(entry => entry.status === "pending")) void syncOutbox()
+	}, 15000)
+	void refresh().then(() => loadOutbox().catch(() => {})).then(() => {
+		if (!offline.value && outbox.value.some(entry => entry.status === "pending")) return syncOutbox()
+	})
 })
 onUnmounted(() => {
 	request++
+	outboxRead++
+	window.clearInterval(retryTimer)
 	window.removeEventListener("online", reconnect)
 	window.removeEventListener("offline", refresh)
 	window.removeEventListener("storage", storageChanged)
+	window.removeEventListener("focus", reconnect)
 })
 
 function navigationUrl(location) {
@@ -201,3 +426,15 @@ function navigationUrl(location) {
 		: `https://www.google.com/maps/dir/?api=1&destination=${coordinates}`
 }
 </script>
+
+<style scoped>
+.fleet-button {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	border: 1px solid currentColor;
+	border-radius: 0.5rem;
+	padding: 0.5rem 0.75rem;
+}
+summary.fleet-button { display: list-item; cursor: pointer; }
+</style>

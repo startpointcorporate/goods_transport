@@ -24,7 +24,7 @@
 import { onUnmounted, ref } from "vue"
 
 const props = defineProps({
-	label: String, french: Boolean, maximum: { type: Number, default: 1 }, send: Function,
+	label: String, french: Boolean, maximum: { type: Number, default: 1 }, send: Function, initialFiles: Array,
 })
 const emit = defineEmits(["accepted"])
 const formats = ["image/jpeg", "image/png", "image/webp"]
@@ -32,7 +32,7 @@ const limit = 12 * 1024 * 1024
 const config = window.frappe?.boot?.goods_transport_fleet_photos || {}
 const edge = Math.max(1200, Math.min(3200, Number(config.long_edge) || 2000))
 const quality = Math.max(0.8, Math.min(0.98, Number(config.jpeg_quality) || 0.88))
-const previews = ref([])
+const previews = ref((props.initialFiles || []).map(file => ({ file, url: URL.createObjectURL(file), accepted: true })))
 const busy = ref(false)
 const message = ref("")
 let disposed = false
