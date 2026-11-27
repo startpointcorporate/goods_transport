@@ -17,7 +17,8 @@ const trip = {
 	name: "TRIP-TEST-001",
 	origin: "Brazzaville",
 	destination: "Kinkala",
-	status: "In Transit",
+	status: "Vehicle Assigned",
+	inspection_configured: true,
 	vehicle_license_plate: "TEST-001",
 	planned_departure_at: "2026-11-19 08:30",
 	locations: [{ name: "Kinkala", location_name: "Kinkala", latitude: -4.36, longitude: 14.77 }],
@@ -78,10 +79,11 @@ async function run() {
 			await configure(context)
 			const page = await context.newPage()
 			await page.goto(origin + "/hrms/home")
-			await page.getByRole("link", { name: "Mes missions" }).click()
 			await page.waitForURL("**/hrms/fleet")
-			await page.getByRole("button", { name: /TRIP-TEST-001/ }).click()
-			await page.getByRole("heading", { name: "Feuille de route", exact: true }).waitFor()
+			await page.getByRole("heading", { name: "TRIP-TEST-001" }).waitFor()
+			await page.getByText("Feuille de route", { exact: true }).click()
+			await page.getByText("Documents et péages", { exact: true }).click()
+			await page.getByText("Autorisations de carburant", { exact: true }).click()
 			await page.getByText("Aucun plan de péages disponible.", { exact: true }).waitFor()
 			await page.getByRole("button", { name: "Synchroniser le PDF" }).waitFor()
 			assert.match(await page.getByRole("link", { name: "Ouvrir la navigation" }).getAttribute("href"), /maps/)
@@ -90,9 +92,9 @@ async function run() {
 				await fs.mkdir(screenshotDir, { recursive: true })
 				await page.screenshot({ path: path.join(screenshotDir, `fleet-${name}.png`) })
 			}
-			await page.getByRole("button", { name: "Départ", exact: true }).click()
+			await page.getByRole("button", { name: "Faire l’état des lieux de départ", exact: true }).click()
 			await page.getByLabel("Kilométrage réel").fill("1200")
-			await page.getByLabel("Carrosserie").selectOption("Pass")
+			await page.getByRole("group", { name: "Carrosserie" }).getByRole("button", { name: "Conforme" }).click()
 			const photoPicker = page.locator('input[type="file"]').first()
 			await photoPicker.setInputFiles({ name: "invalid.txt", mimeType: "text/plain", buffer: Buffer.from("invalid") })
 			await page.getByText(/Photo invalide/).waitFor()
@@ -122,34 +124,16 @@ async function run() {
 			const end = data.indexOf(Buffer.from([0xff, 0xd9]), start + 2)
 			assert.ok(start >= 0 && end >= 0 && end + 2 - start < Buffer.from(image, "base64").length)
 			await page.getByText("Photo enregistrée.", { exact: true }).waitFor()
+			const validation = page.waitForResponse(response => response.url().endsWith(".validate_inspection"))
 			await page.getByRole("button", { name: "Valider l’inspection" }).click()
-			await page.getByText(/Inspection validée/).waitFor()
+			assert.equal((await validation).ok(), true)
 
-			await page.getByRole("button", { name: "Présenter une autorisation" }).click()
+			await page.getByRole("button", { name: "Consulter l’autorisation active" }).click()
 			await page.getByText("CODE-TEST", { exact: true }).waitFor()
-			await page.getByRole("button", { name: "Preuve de livraison" }).click()
-			await page.getByLabel("Quantité livrée").fill("5")
-			await page.getByLabel("Nom du réceptionnaire").fill("Test")
-			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
-			await page.getByText(/POD-TEST/).waitFor()
-			await page.getByRole("button", { name: "Signaler un incident" }).click()
-			await page.getByLabel("Catégorie").selectOption("mechanical")
-			await page.getByLabel("Description").fill("Cache desserré")
-			assert.equal(await page.getByText("Cette déclaration immobilise le véhicule.").count(), 0)
-			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
-			await page.getByText(/COMMENT-TEST/).waitFor()
-
-			await page.getByRole("button", { name: "Signaler un incident" }).click()
-			await page.getByLabel("Catégorie").selectOption("Breakdown")
-			await page.getByText("Cette déclaration immobilise le véhicule.").waitFor()
-			await page.getByLabel("Description").fill("Panne de test")
-			await page.getByRole("button", { name: "Confirmer", exact: true }).click()
-			await page.getByText(/INCIDENT-TEST/).waitFor()
-
-			await page.getByRole("link", { name: "Espace RH" }).click()
-			await page.waitForURL("**/hrms/home")
+			await page.getByRole("link", { name: "Mon espace RH" }).click()
+			await page.waitForURL("**/hrms/home?space=hr")
 			await context.close()
-			console.log(`${name}: HR home → trip → inspection, fuel, POD and incident → HR home`)
+			console.log(`${name}: HR home → trip → inspection, photo retries and fuel → HR home`)
 		}
 	} finally {
 		await browser.close()

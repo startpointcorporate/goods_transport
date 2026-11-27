@@ -22,25 +22,47 @@ EDITS = (
 	(
 		Path("main.js"),
 		'router.beforeEach(async (to, _, next) => {',
-		'router.beforeEach(async (to, _, next) => {\n'
+		'router.beforeEach(async (to, from, next) => {\n'
 		'\tif (window.frappe?.boot?.fleet_offline) {\n'
 		'\t\treturn next(to.name === "FleetDriverMissions" ? undefined : { name: "FleetDriverMissions" })\n'
 		'\t}',
 	),
 	(
+		Path("main.js"),
+		'} else if (["Login", "ForgotPassword"].includes(to.name)) {',
+		'} else if ((to.name === "Home" && (!from.name || from.name === "Login") && to.query.space !== "hr" || to.name === "Login") &&\n'
+		'\t\t    userResource.data?.roles?.includes("Fleet Driver") && await fleetAvailable()) {\n'
+		'\t\t    next({ name: "FleetDriverMissions" })\n'
+		'\t\t} else if (["Login", "ForgotPassword"].includes(to.name)) {',
+	),
+	(
+		Path("main.js"),
+		'router.isReady().then(async () => {',
+		'import { getFleetData } from "@/fleet_driver/fleetApi"\n\n'
+		'function fleetAvailable() {\n'
+		'    return getFleetData("available").catch(() => false)\n'
+		'}\n\nrouter.isReady().then(async () => {',
+	),
+	(
 		Path("data/session.js"),
 		'import router from "@/router"',
-		'import router from "@/router"\nimport { purgeFleetSnapshot } from "@/fleet_driver/offline"',
+		'import router from "@/router"\nimport { purgeFleetSnapshot } from "@/fleet_driver/offline"\n'
+		'import { clearFleetOutbox } from "@/fleet_driver/fleetOutbox"',
+	),
+	(
+		Path("data/session.js"),
+		'function handleLogin(response) {',
+		'async function handleLogin(response) {',
 	),
 	(
 		Path("data/session.js"),
 		'if (response.message === "Logged In") {',
-		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()',
+		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()\n\t\tawait clearFleetOutbox()',
 	),
 	(
 		Path("data/session.js"),
 		'url: "logout",\n\t\tonSuccess() {',
-		'url: "logout",\n\t\tonSuccess() {\n\t\t\tpurgeFleetSnapshot()',
+		'url: "logout",\n\t\tasync onSuccess() {\n\t\t\tpurgeFleetSnapshot()\n\t\t\tawait clearFleetOutbox()',
 	),
 	(
 		Path("../public/sw.js"),
@@ -82,7 +104,7 @@ def integrate(hrms):
 
 	fleet = source / "fleet_driver"
 	fleet.mkdir(exist_ok=True)
-	for asset in ("FleetLink.vue", "FleetMissions.vue", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js", "FleetPhotoPicker.vue", "FleetPrivateDocuments.vue"):
+	for asset in ("FleetLink.vue", "FleetMissions.vue", "missionFlow.mjs", "fleetOutbox.js", "fleetApi.js", "offline.js", "FleetInspection.vue", "FleetOperations.vue", "FleetRoadDocuments.vue", "roadDocuments.js", "FleetPhotoPicker.vue", "FleetPrivateDocuments.vue"):
 		shutil.copyfile(EXTENSION / asset, fleet / asset)
 	for path, content in files.items():
 		path.write_text(content)

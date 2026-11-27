@@ -11,7 +11,22 @@ async function request(method, options = {}, query) {
 		headers: { Accept: "application/json" },
 		...options,
 	})
-	if (!response.ok) throw new Error(String(response.status))
+	if (!response.ok) {
+		const error = new Error(String(response.status))
+		if ([400, 409, 417].includes(response.status)) {
+			try {
+				const payload = await response.json()
+				const messages = JSON.parse(payload._server_messages || "[]")
+				const message = JSON.parse(messages.at(-1) || "{}").message
+				if (typeof message === "string") {
+					error.businessMessage = new DOMParser().parseFromString(message, "text/html").body.textContent
+				}
+			} catch {
+				// Retain the HTTP status if the response has no readable message.
+			}
+		}
+		throw error
+	}
 	const payload = await response.json()
 	return payload.message
 }

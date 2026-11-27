@@ -47,7 +47,8 @@ async function serve(request, response) {
 			mission_files: revision === 1 ? [{ name: "FILE-1", file_name: "Consigne privée.pdf", modified: "version-1" }] : [],
 			route_tolls: [{ name: "Péage test", axis: "RN1", latitude: -4.3, longitude: 15.1 }],
 			get_current_employee_info: { name: "EMP-TEST", user_id: user },
-			get_current_user_info: { name: user },
+			get_current_user_info: { name: user, roles: ["Fleet Driver"] },
+			available: true,
 			missions: { user, trips: [trip] },
 		}
 		response.setHeader("Content-Type", "application/json")
@@ -72,9 +73,9 @@ async function run() {
 		await setUser(driver)
 		let page = await context.newPage()
 		await page.goto(origin + "/hrms/fleet")
-		await page.getByRole("button", { name: /TEST-A-1/ }).waitFor()
+		await page.getByRole("heading", { name: "TEST-A-1" }).waitFor()
 		await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
-		await page.getByRole("button", { name: /TEST-A-1/ }).click()
+		await page.getByText("Documents et péages", { exact: true }).click()
 		await page.getByText("Péage test", { exact: true }).waitFor()
 		await page.getByRole("button", { name: "Synchroniser le PDF" }).click()
 		await page.getByRole("link", { name: "Télécharger le PDF" }).waitFor()
@@ -85,20 +86,23 @@ async function run() {
 		page = await context.newPage()
 		await page.goto(origin + "/hrms")
 		await page.getByText(/Hors ligne/).waitFor()
-		await page.getByRole("button", { name: /TEST-A-1/ }).click()
-		await page.getByRole("heading", { name: "Feuille de route", exact: true }).waitFor()
+		await page.getByText("Documents et péages", { exact: true }).click()
 		await page.getByText("Péage test", { exact: true }).waitFor()
 		await page.getByRole("link", { name: "Prévisualiser le PDF" }).waitFor()
 		await page.getByText("Consigne privée.pdf", { exact: true }).waitFor()
 		await page.getByRole("link", { name: "Consulter", exact: true }).waitFor()
 		assert.equal(await page.getByRole("button", { name: "Synchroniser le PDF" }).isDisabled(), true)
-		assert.equal(await page.getByRole("button", { name: "Preuve de livraison" }).count(), 0)
+		assert.equal(await page.getByRole("button", { name: "Marchandises et livraisons" }).count(), 1)
 		assert.equal(await page.getByRole("button", { name: "Départ", exact: true }).count(), 0)
-		assert.equal(await page.getByRole("link", { name: "Espace RH" }).count(), 0)
+		assert.equal(await page.getByRole("link", { name: "Mon espace RH" }).count(), 0)
 		revision++
 		await context.setOffline(false)
-		await page.getByRole("button", { name: /TEST-A-2/ }).waitFor()
-		await page.getByRole("button", { name: /TEST-A-2/ }).click()
+		const mission = page.getByRole("heading", { name: "TEST-A-2" })
+		const retry = page.getByRole("button", { name: "Réessayer la connexion" })
+		await mission.or(retry).first().waitFor()
+		if (await retry.isVisible()) await retry.click()
+		await mission.waitFor()
+		await page.getByText("Documents et péages", { exact: true }).click()
 		await page.getByRole("heading", { name: "Autres documents autorisés" }).waitFor()
 		assert.equal(await page.getByText("Consigne privée.pdf", { exact: true }).count(), 0)
 		await page.close()

@@ -196,6 +196,10 @@ def advance_status(trip: str, to_status: str) -> str:
 	"""Advance a submitted Trip through the operational milestones."""
 	doc = frappe.get_doc("Transport Trip", trip, for_update=True)
 	doc.check_permission("write")
+	return _advance_status(doc, to_status)
+
+
+def _advance_status(doc, to_status):
 	if doc.docstatus != 1:
 		frappe.throw(_("Trip must be submitted before advancing status."))
 	if to_status not in TRIP_STATUS_ORDER:

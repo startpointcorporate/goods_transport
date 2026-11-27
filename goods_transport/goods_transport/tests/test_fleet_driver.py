@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import frappe
 
@@ -34,6 +34,7 @@ class TestFleetDriver(TestCase):
 		with (
 			patch.object(frappe, "get_all", side_effect=[[employee], ["D-1"], []]) as get_all,
 			patch.object(fleet_driver, "now_datetime"),
+			patch.object(frappe, "get_meta"),
 		):
 			self.assertEqual(fleet_driver.missions()["trips"], [])
 		self.assertEqual(get_all.call_args.args, ("Transport Trip",))
@@ -54,7 +55,10 @@ class TestFleetDriver(TestCase):
 				'[{"station":"Station","reserve":"RESERVE-1","cost":100,"refill_liters":20}]}}'
 			),
 		)
-		with patch.object(frappe, "get_all", return_value=[]) as get_all:
+		with (
+			patch.object(frappe, "get_all", return_value=[]) as get_all,
+			patch.object(frappe.db, "table_exists", return_value=False),
+		):
 			result = fleet_driver._project_trip(trip, {"driver": "D-1", "company": "Site"})
 		self.assertNotIn("fuel_plan_inputs", result)
 		self.assertEqual(result["fuel_stops"], [
@@ -83,3 +87,22 @@ class TestFleetDriver(TestCase):
 			"latitude": 1, "longitude": 2, "precision": "Précis",
 		}])
 		self.assertNotIn("custom_toll_rates", stations.call_args.kwargs["fields"])
+
+	def test_driver_cannot_use_a_financial_or_out_of_order_transition(self):
+		trip = frappe._dict(name="TRIP-1", driver="D-1", status="Vehicle Assigned")
+		with (
+			patch.object(fleet_driver, "_assigned_trip", return_value=trip),
+			patch.object(fleet_driver, "_field_event_exists", return_value=False),
+		):
+			for event in ("Settled", "Closed", "departed"):
+				with self.subTest(event=event), self.assertRaises(frappe.ValidationError):
+					fleet_driver.record_field_event(trip.name, event)
+
+	def test_driver_replay_returns_without_writing_a_second_event(self):
+		trip = Mock(name="TRIP-1", driver="D-1", status="Loaded")
+		with (
+			patch.object(fleet_driver, "_assigned_trip", return_value=trip),
+			patch.object(fleet_driver, "_field_event_exists", return_value=True),
+		):
+			self.assertEqual(fleet_driver.record_field_event("TRIP-1", "at_loading"), "Loaded")
+		trip.add_comment.assert_not_called()

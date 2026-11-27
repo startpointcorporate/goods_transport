@@ -255,12 +255,12 @@ def upload_photo(inspection, control):
 	return _upload_photo(inspection, control)
 
 
-def _upload_photo(inspection, control, authorize=None):
+def _upload_photo(inspection, control, authorize=None, upload=None):
 	doc, trip = _inspection(inspection, "write", True, authorize)
 	allowed = set(VIEWS) | {row["code"] for row in policy(trip).get("controls", [])}
 	if doc.docstatus or control not in allowed:
 		frappe.throw(_("This inspection cannot receive that photograph."))
-	upload = frappe.request.files.get("file")
+	upload = upload if upload is not None else frappe.request.files.get("file")
 	if not upload:
 		frappe.throw(_("Select a photograph."))
 	content, suffix = validate_image_upload(upload)
@@ -289,7 +289,7 @@ def validate_image_upload(upload):
 			if image_format not in ("JPEG", "PNG", "WEBP"):
 				frappe.throw(_("Use a JPEG, PNG or WebP photograph."))
 			photo.verify()
-	except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+	except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError):
 		frappe.throw(_("The photograph could not be read."))
 	return content, {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image_format]
 
