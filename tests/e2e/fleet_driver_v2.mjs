@@ -25,26 +25,28 @@ async function openTrip(page, trip) {
 	await page.getByRole("button", { name: new RegExp(trip) }).click()
 }
 
-async function inspect(page, phase, reading) {
+async function inspect(page, phase, reading, anomaly = false) {
 	await page.getByRole("button", { name: new RegExp("Faire l’état des lieux de " + phase) }).click()
 	await page.getByText("Kilométrage réel", { exact: true }).waitFor()
-	await page.getByRole("button", { name: "Valider l’inspection" }).waitFor()
-	assert.equal(await page.getByRole("button", { name: "Valider l’inspection" }).isDisabled(), true)
+	await page.getByRole("button", { name: "Valider" }).waitFor()
+	assert.equal(await page.getByRole("button", { name: "Valider" }).isDisabled(), true)
 	const control = page.getByRole("group", { name: "Carrosserie" })
 	for (const check of ["Freins", "Documents du véhicule"]) {
-		await page.getByRole("group", { name: check }).getByRole("button", { name: "Conforme" }).click()
+		await page.getByRole("group", { name: check }).getByRole("button", { name: "Conforme", exact: true }).click()
 	}
-	await control.getByRole("button", { name: "Conforme" }).click()
+	await control.getByRole("button", { name: "Conforme", exact: true }).click()
 	await control.locator('input[type="file"]').setInputFiles({ name: "test.png", mimeType: "image/png", buffer: photo })
 	await control.getByRole("button", { name: "Accepter" }).click()
-	const [upload] = await Promise.all([
-		page.waitForResponse(response => response.url().endsWith(".upload_photo")),
-		control.getByRole("button", { name: "Envoyer la photo" }).click(),
-	])
-	assert.equal(upload.ok(), true, "Inspection photo HTTP " + upload.status())
+	if (anomaly) {
+		await control.getByRole("button", { name: "Non conforme" }).click()
+		await control.locator("select").selectOption("worn")
+		await control.getByRole("button", { name: "Mineure" }).click()
+		await control.getByLabel("Observations").fill("Usure observée")
+	}
+
 	await page.getByText("Kilométrage réel", { exact: true }).locator("input").fill(String(reading))
 	await page.screenshot({ path: captures + "/inspection-" + phase + ".png", fullPage: true })
-	await page.getByRole("button", { name: "Valider l’inspection" }).click()
+	await page.getByRole("button", { name: "Valider" }).click()
 }
 
 async function driveToDelivery(page) {
@@ -65,8 +67,9 @@ async function delivery(page, partial) {
 	}
 	await page.getByLabel("Nom du réceptionnaire").fill("Réceptionnaire de test")
 	await page.screenshot({ path: captures + (partial ? "/livraison-partielle.png" : "/livraison-complete.png"), fullPage: true })
-	await page.getByRole("button", { name: "Confirmer", exact: true }).click()
-	await page.getByText("Livraison confirmée").waitFor()
+	await page.getByRole("button", { name: "Valider", exact: true }).click()
+	await page.getByRole("button", { name: "Marchandises et livraisons" }).click()
+	await page.getByText(partial ? "Traitement par l’exploitation requis" : "Livraison complète", { exact: true }).waitFor()
 }
 
 async function captureLayout(page, name) {
@@ -104,44 +107,69 @@ try {
 		await driveToDelivery(page)
 		await delivery(page, false)
 		await page.getByRole("button", { name: "Terminer les livraisons" }).click()
-		await inspect(page, "retour", 120)
+		await inspect(page, "retour", 90)
+		await page.getByText(/kilométrage.*(arrivée|retour)|arrival odometer/i).first().waitFor()
+		await page.getByText(/Opérations sur le téléphone/).click()
+		await page.getByRole("button", { name: "Corriger" }).click()
+		await page.getByText("Kilométrage réel", { exact: true }).locator("input").fill("120")
+		await page.getByRole("button", { name: "Valider", exact: true }).click()
+		await page.getByText(/Opérations sur le téléphone/).click()
 		await page.getByRole("button", { name: "Je termine ma mission" }).click()
 		await page.getByRole("button", { name: "Je termine ma mission" }).waitFor({ state: "hidden" })
 
 		await openTrip(page, fixtures.driver.other_mission)
-		await inspect(page, "départ", 100)
+		await inspect(page, "départ", 100, true)
 		await driveToDelivery(page)
 		await delivery(page, true)
-		await page.getByRole("button", { name: "Terminer les livraisons" }).click()
-		await page.getByText(/full, valid delivery quantity|quantité livrée complète/i).first().waitFor()
+		assert.equal(await page.getByRole("button", { name: "Terminer les livraisons" }).count(), 0)
 		await page.getByRole("button", { name: "Retour à la mission" }).click()
 		await page.getByRole("button", { name: "Signaler un incident" }).click()
 		await page.getByRole("radio", { name: "Problème de pneumatique" }).check()
-		await context.setOffline(true)
-		await page.getByRole("button", { name: "Enregistrer le brouillon" }).click()
-		await page.getByText(/Opérations sur le téléphone/).click()
-		await page.getByRole("button", { name: "Mettre en attente" }).click()
-		await page.getByText(/En attente de synchronisation/).waitFor()
-		await context.setOffline(false)
-		await page.getByText(/· Validé/).waitFor()
+
+		// Let Frappe accept the first transmission, then lose its response.
+		const endpoint = "**/*.sync_operation"
+		let finishedTransmission
+		const interrupted = new Promise(resolve => { finishedTransmission = resolve })
+		await page.route(endpoint, async route => {
+			const response = await route.fetch()
+			const lost = route.request().postDataBuffer()
+			assert.equal(response.status(), 200)
+			await route.abort("internetdisconnected")
+			finishedTransmission(lost)
+		}, { times: 1 })
+		await page.getByRole("button", { name: "Valider", exact: true }).click()
+		await page.getByText("En attente de synchronisation", { exact: true }).waitFor()
+		await page.waitForFunction(() => document.body.textContent.includes("Opérations sur le téléphone"))
+		assert.ok((await interrupted)?.includes(Buffer.from("report_incident")))
+
 		await page.getByRole("button", { name: "Signaler un incident" }).click()
 		await page.getByRole("radio", { name: "Panne mécanique" }).check()
 		await page.getByLabel("Le véhicule doit être immobilisé").check()
-		await page.screenshot({ path: captures + "/incident.png" })
-		await page.getByRole("button", { name: "Confirmer", exact: true }).click()
-		await page.getByText(/Enregistré/).waitFor()
-
-		// Authenticate again in the same browser storage and verify the previous driver's records disappear.
-		await page.goto(origin + "/hrms/profile")
-		await page.getByRole("button", { name: /Log Out|Déconnexion|Se déconnecter/i }).click()
-		await page.locator('input[autocomplete="username"]').waitFor()
-		assert.equal(await page.evaluate(() => localStorage.getItem("goods-transport:fleet-snapshot:v1")), null)
-		await login(page, fixtures.other)
-		await page.getByRole("button", { name: "Ma mission", exact: true }).waitFor()
-		assert.equal(await page.getByText(/Opérations sur le téléphone/).count(), 0)
+		await context.setOffline(true)
+		await page.getByRole("button", { name: "Valider", exact: true }).click()
+		await page.getByText(/Opérations sur le téléphone/).click()
+		await page.getByText(/réception.*n’est pas confirmée/).waitFor()
+		// Keep automatic attempts offline until a new session is established.
+		await page.close()
+		await context.setOffline(false)
+		const shared = await context.newPage()
+		const logout = async () => {
+			await shared.goto(origin + "/hrms/profile")
+			await shared.getByRole("button", { name: /Log Out|Déconnexion|Se déconnecter/i }).click()
+			await shared.locator('input[autocomplete="username"]').waitFor()
+		}
+		await logout()
+		await login(shared, fixtures.other)
+		await shared.getByRole("heading", { name: fixtures.other.trip }).waitFor()
+		assert.equal(await shared.getByText(/Opérations sur le téléphone/).count(), 0)
 		assert.equal((await context.request.get(origin + api + "delivery_documents", {
 			params: { trip: fixtures.driver.trip },
 		})).status(), 403)
+		await logout()
+		await login(shared, fixtures.driver)
+		await shared.getByText(/Opérations sur le téléphone/).click()
+		await shared.getByText(/Incident · Validé/).last().waitFor()
+		assert.equal(await shared.getByText(/Incident · Validé/).count(), 2)
 		await context.close()
 
 		const employee = await browser.newPage({ locale: "fr-FR" })

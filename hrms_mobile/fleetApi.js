@@ -13,6 +13,7 @@ async function request(method, options = {}, query) {
 	})
 	if (!response.ok) {
 		const error = new Error(String(response.status))
+		error.status = response.status
 		if ([400, 409, 417].includes(response.status)) {
 			try {
 				const payload = await response.json()

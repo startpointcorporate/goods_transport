@@ -19,14 +19,17 @@
 					<summary class="fleet-button">{{ french ? "Opérations sur le téléphone" : "Operations on this phone" }} · {{ outbox.length }}</summary>
 					<div v-for="entry in outbox" :key="entry.id" class="flex flex-wrap items-center gap-2 border-t py-2">
 						<span>{{ entry.trip }} · {{ operationLabel(entry) }} · {{ outboxLabels[entry.status] }}</span>
-						<p v-if="entry.error" role="alert">{{ entry.error }}</p>
-						<button v-if="['draft', 'error'].includes(entry.status)" class="fleet-button" :disabled="outboxBusy"
-							@click="queue(entry)">{{ french ? "Mettre en attente" : "Queue for sync" }}</button>
-						<button v-if="entry.status !== 'pending'" class="fleet-button" :disabled="outboxBusy"
+						<p v-if="entry.status === 'error'" role="alert">{{ entry.error || (french ? "Le serveur a refusé cette opération. Vérifiez la mission et vos droits." : "The server refused this operation. Check the mission and your access.") }}</p>
+						<p v-if="entry.method === 'report_critical_incident' && entry.status !== 'validated'" role="alert">
+							{{ french ? "La réception de cette déclaration par l’exploitation n’est pas confirmée. Contactez-la directement si nécessaire." : "Receipt by dispatch has not been confirmed. Contact them directly if needed." }}
+						</p>
+						<button v-if="entry.status === 'error' && entry.method !== 'record_field_event' && trips.some(trip => trip.name === entry.trip)"
+							class="fleet-button" :disabled="outboxBusy" @click="editOperation(entry)">{{ french ? "Corriger" : "Edit" }}</button>
+						<button v-if="entry.status === 'error'" class="fleet-button" :disabled="outboxBusy"
+							@click="retry(entry)">{{ french ? "Réessayer" : "Retry" }}</button>
+						<button v-if="['error', 'validated'].includes(entry.status)" class="fleet-button" :disabled="outboxBusy"
 							@click="discard(entry)">{{ french ? "Retirer" : "Remove" }}</button>
 					</div>
-					<button v-if="!offline && outbox.some(entry => entry.status === 'pending')" class="fleet-button" :disabled="outboxBusy"
-						@click="syncOutbox">{{ french ? "Synchroniser" : "Sync" }}</button>
 				</details>
 				<p v-if="outboxError" role="alert">{{ outboxError }}</p>
 				<p v-if="loading" role="status">{{ labels.loading }}</p>
@@ -60,13 +63,13 @@
 						<p v-if="notice" role="status">{{ notice }}</p>
 						<button v-if="action && !panel" class="fleet-button bg-gray-900 text-white"
 							:disabled="busy" @click="performAction">{{ actionLabels[action] }}</button>
-						<FleetInspection v-if="['Departure', 'Return'].includes(panel)" :key="selected.name + panel"
-							:mission="selected" :offline="offline" :trip="selected.name" :phase="panel" :french="french" @updated="updated" @draft="storeDraft" />
+						<FleetInspection v-if="['Departure', 'Return'].includes(panel)" :key="selected.name + panel + (correction?.id || '')"
+							:mission="selected" :phase="panel" :french="french" :correction="correction" :submitting="outboxBusy" @validate="submitOperation" />
 						<FleetOperations v-if="['delivery', 'incident'].includes(panel) || (!offline && panel === 'fuel')"
-							:key="selected.name + panel" :initial-panel="panel" :offline="offline" :cached-deliveries="selected.deliveries || []" :trip="selected.name" :french="french"
+							:key="selected.name + panel + (correction?.id || '')" :initial-panel="panel" :cached-deliveries="selected.deliveries || []" :trip="selected.name" :french="french"
 							:can-deliver="['Arrived', 'Unloading', 'Delivered'].includes(selected.status)" :completing="busy"
-							:can-complete="selected.status === 'Unloading'" @complete="recordEvent('delivered')" @updated="refresh" @draft="storeDraft" />
-						<button v-if="panel" class="fleet-button self-start" @click="panel = ''">{{ french ? "Retour à la mission" : "Back to mission" }}</button>
+							:can-complete="Boolean(selected.can_finish_deliveries)" :correction="correction" :submitting="outboxBusy" @complete="recordEvent('delivered')" @validate="submitOperation" />
+						<button v-if="panel" class="fleet-button self-start" @click="panel = ''; correction = null">{{ french ? "Retour à la mission" : "Back to mission" }}</button>
 						<details class="rounded border p-3">
 							<summary class="fleet-button">{{ labels.road }}</summary>
 							<p>{{ french ? "Plan poids lourd. Le guidage externe peut proposer un autre trajet." : "Truck route plan. External navigation may suggest a different route." }}</p>
@@ -104,8 +107,8 @@
 							<FleetPrivateDocuments :key="selected.name + ':files'" :trip="selected" :french="french" :offline="offline" />
 						</details>
 						<div class="flex flex-wrap gap-2">
-							<button class="fleet-button" @click="panel = 'delivery'">{{ french ? "Marchandises et livraisons" : "Cargo and deliveries" }}</button>
-							<button class="fleet-button" @click="panel = 'incident'">{{ french ? "Signaler un incident" : "Report an incident" }}</button>
+							<button class="fleet-button" :disabled="busy" @click="panel = 'delivery'">{{ french ? "Marchandises et livraisons" : "Cargo and deliveries" }}</button>
+							<button class="fleet-button" :disabled="busy" @click="panel = 'incident'">{{ french ? "Signaler un incident" : "Report an incident" }}</button>
 						</div>
 					</article>
 				</template>
@@ -120,8 +123,8 @@ import { RouterLink } from "vue-router"
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/vue"
 import { purgeFleetSnapshot, readFleetSnapshot, saveFleetSnapshot } from "./offline"
 import { nextStep, primaryMission } from "./missionFlow.mjs"
-import { discardFleetDraft, queueFleetDraft, readFleetOutbox, saveFleetDraft, syncFleetOutbox } from "./fleetOutbox"
-import { getFleetData, postFleetData } from "./fleetApi"
+import { discardFleetOperation, enqueueFleetOperation, readFleetOutbox, retryFleetOperation, syncFleetOutbox } from "./fleetOutbox"
+import { getFleetData } from "./fleetApi"
 import FleetInspection from "./FleetInspection.vue"
 import FleetOperations from "./FleetOperations.vue"
 import FleetRoadDocuments from "./FleetRoadDocuments.vue"
@@ -163,8 +166,8 @@ const outbox = shallowRef([])
 const outboxBusy = ref(false)
 const outboxError = ref("")
 const outboxLabels = french ? {
-	draft: "Brouillon local", pending: "En attente de synchronisation", validated: "Validé", error: "En erreur",
-} : { draft: "Local draft", pending: "Pending sync", validated: "Validated", error: "Sync error" }
+	draft: "En attente de synchronisation", pending: "En attente de synchronisation", validated: "Validé", error: "En erreur",
+} : { draft: "Pending sync", pending: "Pending sync", validated: "Validated", error: "Sync error" }
 
 function operationLabel(entry) {
 	if (entry.method === "record_field_event") return actionLabels[entry.entries.find(([key]) => key === "event")?.[1]] || (french ? "Étape terrain" : "Field event")
@@ -174,7 +177,7 @@ function operationLabel(entry) {
 }
 
 async function loadOutbox() {
-	outbox.value = error.value ? [] : await readFleetOutbox().catch(() => [])
+	outbox.value = await readFleetOutbox()
 }
 
 async function manageOutbox(operation) {
@@ -191,37 +194,65 @@ async function manageOutbox(operation) {
 	}
 }
 
-const discard = entry => manageOutbox(() => discardFleetDraft(entry))
+const discard = entry => manageOutbox(async () => {
+	if (entry.status === "error" && !window.confirm(french ? "Retirer cette opération non transmise et ses photos ?" : "Remove this unsent operation and its photos?")) return
+	await discardFleetOperation(entry)
+})
 const syncOutbox = () => manageOutbox(async () => {
 	await syncFleetOutbox()
 	await refresh()
 })
-const queue = entry => manageOutbox(async () => {
-	await queueFleetDraft(entry)
-	if (!offline.value) {
-		await syncFleetOutbox()
-		await refresh()
-	}
+const retry = entry => manageOutbox(async () => {
+	await retryFleetOperation(entry)
+	await syncFleetOutbox()
+	await refresh()
 })
 
-function storeDraft(method, body) {
+const correction = shallowRef(null)
+function editOperation(entry) {
+	const trip = trips.value.find(mission => mission.name === entry.trip)
+	if (!trip) return
+	openMission(trip)
+	correction.value = entry
+	panel.value = entry.method === "validate_inspection" ? entry.entries.find(([name]) => name === "phase")?.[1]
+		: entry.method === "confirm_delivery" ? "delivery" : "incident"
+}
+
+function submitOperation(method, body) {
 	return manageOutbox(async () => {
-		await saveFleetDraft(selected.value, method, body)
+		const submitted = await enqueueFleetOperation(selected.value, method, body, correction.value?.id)
+		correction.value = null
 		panel.value = ""
-		notice.value = outboxLabels.draft
+		lastOperation.value = submitted.id
+		await loadOutbox()
+		await syncFleetOutbox()
+		await loadOutbox()
+		await refresh()
 	})
 }
 
 const panel = ref("")
-const busy = ref(false)
-const notice = ref("")
+const busy = computed(() => outboxBusy.value)
+const lastOperation = ref(null)
+const notice = computed(() => {
+	const entry = outbox.value.find(record => record.id === lastOperation.value)
+	if (!entry) return ""
+	if (entry.status === "error") return entry.error || outboxLabels.error
+	if (entry.method === "report_critical_incident" && entry.status !== "validated") {
+		return french ? "Réception par l’exploitation non confirmée. Contactez-la directement si nécessaire."
+			: "Receipt by dispatch is unconfirmed. Contact them directly if needed."
+	}
+	return outboxLabels[entry.status]
+})
 let initial = true
+let retryTimer
 
 function openMission(trip) {
 	initial = false
 	selected.value = trip
+	correction.value = null
 	panel.value = ""
-	notice.value = ""
+	lastOperation.value = null
 }
 
 const action = computed(() => selected.value && nextStep(selected.value))
@@ -230,24 +261,8 @@ function performAction() {
 	else void recordEvent(action.value)
 }
 
-async function recordEvent(event) {
-	if (busy.value) return
-	if (offline.value) return storeDraft("record_field_event", { event })
-	busy.value = true
-	notice.value = ""
-	try {
-		await postFleetData("record_field_event", { trip: selected.value.name, event })
-		await updated()
-	} catch (error) {
-		notice.value = error.businessMessage || (french ? "Impossible d’enregistrer cette étape. Vérifiez la connexion ou contactez l’exploitation." : "Could not record this step. Check your connection or contact dispatch.")
-	} finally {
-		busy.value = false
-	}
-}
-
-async function updated() {
-	panel.value = ""
-	await refresh()
+function recordEvent(event) {
+	return submitOperation("record_field_event", { event })
 }
 
 const trips = ref([])
@@ -271,7 +286,6 @@ function showSnapshot(snapshot) {
 		selected.value = primaryMission(trips.value)
 		initial = false
 	}
-	if (!snapshot) outbox.value = []
 	lastSync.value = snapshot?.savedAt ? new Date(snapshot.savedAt).toLocaleString() : ""
 	error.value = snapshot ? "" : labels.unavailable
 }
@@ -333,21 +347,28 @@ async function reconnect() {
 
 function storageChanged() {
 	if (offline.value) showSnapshot(readFleetSnapshot())
+	void loadOutbox().catch(() => {})
 }
 
 onMounted(() => {
 	window.addEventListener("online", reconnect)
 	window.addEventListener("offline", refresh)
 	window.addEventListener("storage", storageChanged)
-	void refresh().then(() => loadOutbox()).then(() => {
-		if (!offline.value && outbox.value.some(entry => entry.status === "pending")) return syncOutbox()
+	window.addEventListener("focus", reconnect)
+	retryTimer = window.setInterval(() => {
+		if (navigator.onLine && !offlineShell && outbox.value.some(entry => ["pending", "draft"].includes(entry.status))) void syncOutbox()
+	}, 15000)
+	void refresh().then(() => loadOutbox().catch(() => {})).then(() => {
+		if (!offline.value && outbox.value.some(entry => ["pending", "draft"].includes(entry.status))) return syncOutbox()
 	})
 })
 onUnmounted(() => {
 	request++
+	window.clearInterval(retryTimer)
 	window.removeEventListener("online", reconnect)
 	window.removeEventListener("offline", refresh)
 	window.removeEventListener("storage", storageChanged)
+	window.removeEventListener("focus", reconnect)
 })
 
 function navigationUrl(location) {

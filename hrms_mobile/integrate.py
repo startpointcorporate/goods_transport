@@ -47,7 +47,7 @@ EDITS = (
 		Path("data/session.js"),
 		'import router from "@/router"',
 		'import router from "@/router"\nimport { purgeFleetSnapshot } from "@/fleet_driver/offline"\n'
-		'import { clearFleetOutbox } from "@/fleet_driver/fleetOutbox"',
+		'import { resetFleetOutboxSession } from "@/fleet_driver/fleetOutbox"',
 	),
 	(
 		Path("data/session.js"),
@@ -57,12 +57,12 @@ EDITS = (
 	(
 		Path("data/session.js"),
 		'if (response.message === "Logged In") {',
-		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()\n\t\tawait clearFleetOutbox()',
+		'if (response.message === "Logged In") {\n\t\tpurgeFleetSnapshot()\n\t\tresetFleetOutboxSession()',
 	),
 	(
 		Path("data/session.js"),
 		'url: "logout",\n\t\tonSuccess() {',
-		'url: "logout",\n\t\tasync onSuccess() {\n\t\t\tpurgeFleetSnapshot()\n\t\t\tawait clearFleetOutbox()',
+		'url: "logout",\n\t\tasync onSuccess() {\n\t\t\tpurgeFleetSnapshot()\n\t\t\tresetFleetOutboxSession()',
 	),
 	(
 		Path("../public/sw.js"),

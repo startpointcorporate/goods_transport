@@ -5,7 +5,7 @@ import json
 import frappe
 from frappe import _
 from frappe.permissions import get_user_permissions
-from frappe.utils import now_datetime
+from frappe.utils import flt, now_datetime
 
 from . import trip_inspection
 
@@ -101,11 +101,16 @@ def _project_trip(trip, assignment):
 			"vehicle": trip.vehicle, "driver": assignment["driver"],
 		}))
 
+	deliveries = _delivery_rows(trip.name, assignment["company"]) if trip.status in (
+		"Vehicle Assigned", "At Loading Point", "Loaded", "In Transit", "Arrived", "Unloading", "Delivered",
+	) else []
+	can_finish_deliveries = trip.status == "Unloading" and all(
+		row.delivery_state == "complete" or (not row.proof and not row.pod_required)
+		for row in deliveries
+	) and not frappe.db.exists("Bilty", {"transport_trip": trip.name, "docstatus": 0})
 	return {
 		**result, "locations": locations, "fuel_stops": stops, "authorizations": authorizations,
-		"deliveries": _delivery_rows(trip.name, assignment["company"]) if trip.status in (
-			"Vehicle Assigned", "At Loading Point", "Loaded", "In Transit", "Arrived", "Unloading", "Delivered",
-		) else [],
+		"deliveries": deliveries, "can_finish_deliveries": can_finish_deliveries,
 		"inspection_configured": bool(controls), "departure_inspected": inspected("Departure"),
 		"return_inspected": inspected("Return"), "inspection_controls": controls,
 		"driver_finished": bool(trip.status == "Delivered" and _field_event_exists(trip, "finished", assignment["driver"])),
@@ -251,13 +256,23 @@ def delivery_documents(trip: str):
 def _delivery_rows(trip, company):
 	rows = frappe.get_all(
 		"Bilty", filters={"transport_trip": trip, "company": company, "docstatus": 1},
-		fields=["name", "total_quantity", "pod_status", "pod_required"], order_by="creation asc",
+		fields=["name", "total_quantity", "pod_required", "pod_status", "customer_name", "customer", "consignee", "destination", "status"],
+		order_by="creation asc",
 	)
 	for row in rows:
 		row.items = frappe.get_all(
 			"Bilty Item", filters={"parent": row.name, "parenttype": "Bilty", "parentfield": "items"},
-			fields=["item", "description", "quantity"], order_by="idx asc",
+			fields=["item", "description", "quantity", "uom"], order_by="idx asc",
 		)
+		row.destination = frappe.db.get_value("Transport Location", row.destination, "location_name") or row.destination
+		proof = frappe.db.get_value("Proof of Delivery", {"bilty": row.name, "docstatus": 1},
+			["delivered_quantity", "short_quantity", "damaged_quantity"], as_dict=True)
+		row.proof = proof
+		row.delivery_state = "pending"
+		if proof:
+			row.delivery_state = "complete" if abs(flt(proof.delivered_quantity) - flt(row.total_quantity)) <= 1e-9 else "partial"
+		elif row.status in ("Billed", "Closed", "Cancelled"):
+			row.delivery_state = "unavailable"
 	return rows
 
 

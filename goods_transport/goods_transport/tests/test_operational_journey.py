@@ -100,6 +100,18 @@ class TestOperationalJourney(TestCase):
 		self.assertEqual((remainder.planned_cargo_weight, remainder.planned_cargo_volume), (1200, 8))
 		self.assertCountEqual(get_order_trips(order.name), [trip.name, remainder.name])
 
+		from goods_transport.goods_transport.services.fleet_driver import _delivery_rows
+
+		pod.submit()
+		rows = {row.name: row for row in _delivery_rows(trip.name, self.case.company.name)}
+		self.assertEqual(rows[bilty.name].customer, order.customer)
+		self.assertEqual(rows[grouped.name].customer, other_customer.name)
+		self.assertNotEqual(rows[bilty.name].destination, rows[grouped.name].destination)
+		self.assertEqual(rows[bilty.name]["items"][0].uom, "Nos")
+		self.assertEqual(rows[bilty.name].delivery_state, "partial")
+		self.assertEqual(rows[bilty.name].proof.short_quantity, 1)
+		self.assertEqual(rows[grouped.name].delivery_state, "pending")
+
 	def test_erpnext_weight_and_pricing_validation(self):
 		if not frappe.db.exists("UOM Category", "Mass"):
 			make("UOM Category", category_name="Mass")

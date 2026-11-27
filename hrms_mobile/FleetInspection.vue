@@ -1,14 +1,13 @@
 <template>
 	<section class="flex flex-col gap-3 rounded-lg border p-3">
 		<h3 class="font-semibold">{{ text.title }}</h3>
-		<p v-if="error" role="alert">{{ error }}</p>
 		<form v-if="inspection" class="flex flex-col gap-3" @submit.prevent="validate">
 			<h4 class="font-semibold">{{ text[inspection.phase] }}</h4>
 			<progress :value="completed" :max="inspection.controls.length" class="w-full" :aria-label="text.unchecked" />
 			<p>{{ text.unchecked }} · {{ inspection.controls.length - completed }}</p>
 			<p v-if="inspection.submitted">{{ text.submitted }} {{ inspection.validated_at }}</p>
 			<p v-if="inspection.departure_odometer">{{ text.departureOdometer }} {{ inspection.departure_odometer }}</p>
-			<fieldset :disabled="busy || inspection.submitted" class="flex flex-col gap-3">
+			<fieldset :disabled="submitting || inspection.submitted" class="flex flex-col gap-3">
 				<label class="flex flex-col gap-1">
 					{{ text.odometer }}
 					<input v-model="odometer" required inputmode="decimal" class="rounded border p-2" />
@@ -42,13 +41,9 @@
 							<textarea v-model="results[control.code].observation" required class="rounded border p-2" />
 						</label>
 					</template>
-					<div v-for="photo in photosFor(control.code)" :key="photo.name" class="flex items-start gap-2">
-						<img :src="photoUrl(photo)" :alt="text.photo" class="h-20 w-24 rounded object-cover" />
-						<button v-if="!inspection.submitted" class="underline" type="button" @click="remove(photo)">{{ text.remove }}</button>
-					</div>
-					<FleetPhotoPicker v-if="!inspection.submitted && (results[control.code].result === 'Fail' || (results[control.code].result === 'Pass' && control.min_photos))" :key="inspection.name + ':' + control.code"
+					<FleetPhotoPicker v-if="!inspection.submitted && (results[control.code].result === 'Fail' || (results[control.code].result === 'Pass' && control.min_photos))" :key="control.code"
 						:french="french" :label="`${text.photo} (${text.minimum} ${control.min_photos})`"
-						:maximum="Math.max(1, control.min_photos || 0)" :send="offline ? undefined : file => upload(file, control.code)"
+						:maximum="Math.max(1, control.min_photos || 0)" :initial-files="localPhotos[control.code]"
 						@accepted="localPhotos[control.code] = $event" />
 				</fieldset>
 				</section>
@@ -56,8 +51,8 @@
 					{{ text.observations }}
 					<textarea v-model="observations" class="rounded border p-2" />
 				</label>
-				<button v-if="!inspection.submitted" class="rounded bg-gray-900 p-2 text-white" type="submit" :disabled="!ready">
-					{{ offline ? (french ? "Enregistrer le brouillon" : "Save draft") : text.validate }}
+				<button v-if="!inspection.submitted" class="rounded bg-gray-900 p-2 text-white" type="submit" :disabled="!ready || submitting">
+					{{ french ? "Valider" : "Validate" }}
 				</button>
 			</fieldset>
 		</form>
@@ -67,14 +62,13 @@
 <script setup>
 import { computed, onMounted, ref } from "vue"
 import FleetPhotoPicker from "./FleetPhotoPicker.vue"
-import { fleetUrl, postFleetData } from "./fleetApi"
 
-const props = defineProps({ trip: { type: String, required: true }, phase: { type: String, required: true }, mission: Object, offline: Boolean, french: Boolean })
-const emit = defineEmits(["updated", "draft"])
+const props = defineProps({ phase: { type: String, required: true }, mission: Object, correction: Object, submitting: Boolean, french: Boolean })
+const emit = defineEmits(["validate"])
 const text = props.french ? {
 	title: "États des lieux", Departure: "Départ", Return: "Retour", odometer: "Kilométrage réel",
 	departureOdometer: "Kilométrage au départ", submitted: "Inspection validée", unchecked: "À contrôler",
-	pass: "Conforme", fail: "Anomalie", na: "Non applicable", defect: "Code anomalie", severity: "Gravité",
+	pass: "Conforme", fail: "Non conforme", na: "Non applicable", defect: "Code anomalie", severity: "Gravité",
 	minor: "Mineure", major: "Majeure", critical: "Critique", observations: "Observations",
 	photo: "Photographie", minimum: "minimum", remove: "Retirer", validate: "Valider l’inspection",
 	error: "L’opération a échoué. Vérifiez la phase, les contrôles obligatoires et la connexion.",
@@ -91,8 +85,6 @@ const results = ref({})
 const localPhotos = ref({})
 const odometer = ref("")
 const observations = ref("")
-const busy = ref(false)
-const error = ref("")
 
 function display(document) {
 	inspection.value = document
@@ -106,21 +98,6 @@ function display(document) {
 	}]))
 }
 
-async function perform(operation) {
-	if (busy.value) return
-	error.value = ""
-	busy.value = true
-	try {
-		await operation()
-	} catch (failure) {
-		error.value = failure.businessMessage || text.error
-	} finally {
-		busy.value = false
-	}
-}
-const open = phase => perform(async () => display(await postFleetData("open_inspection", { trip: props.trip, phase })))
-const photosFor = control => inspection.value.photos.filter(photo => photo.attached_to_field === control)
-const photoUrl = photo => fleetUrl("inspection_photo", { inspection: photo.inspection, photo: photo.name })
 const completed = computed(() => inspection.value?.controls.filter(control =>
 	results.value[control.code].result !== "Not Checked").length || 0)
 const groups = computed(() => {
@@ -149,55 +126,41 @@ const ready = computed(() => inspection.value?.controls.every(control => {
 	const result = results.value[control.code]
 	if (result.result === "Not Checked") return !control.required_control
 	if (result.result === "Not Applicable") return true
-	if (photosFor(control.code).length + (props.offline ? localPhotos.value[control.code]?.length || 0 : 0) < control.min_photos) return false
+	if ((localPhotos.value[control.code]?.length || 0) < control.min_photos) return false
 	return result.result !== "Fail" || (result.defect && result.severity && result.observation.trim())
 }))
-const validate = () => perform(async () => {
-	if (props.offline) {
-		const form = new FormData()
-		form.set("phase", props.phase)
-		form.set("odometer", odometer.value)
-		form.set("results", JSON.stringify(results.value))
-		form.set("observations", observations.value)
-		for (const [control, files] of Object.entries(localPhotos.value)) {
-			for (const file of files) form.append("photo:" + control, file)
-		}
-		emit("draft", "validate_inspection", form)
-		return
+const validate = () => {
+	const form = new FormData()
+	form.set("phase", props.phase)
+	form.set("odometer", odometer.value)
+	form.set("results", JSON.stringify(results.value))
+	form.set("observations", observations.value)
+	for (const [control, files] of Object.entries(localPhotos.value)) {
+		for (const file of files) form.append("photo:" + control, file)
 	}
-	display(await postFleetData("validate_inspection", {
-		inspection: inspection.value.name, odometer: odometer.value,
-		results: results.value, observations: observations.value,
-	}))
-	emit("updated")
-})
-onMounted(() => {
-	if (props.offline) {
-		display({
-			phase: props.phase, photos: [], controls: props.mission.inspection_controls || [],
-			odometer: props.phase === "Departure" ? props.mission.departure_odometer : props.mission.arrival_odometer,
-			departure_odometer: props.phase === "Return" ? props.mission.departure_odometer : "",
-		})
-	} else {
-		void open(props.phase)
-	}
-})
-
-async function upload(file, control) {
-	const body = new FormData()
-	body.append("file", file)
-	body.append("inspection", inspection.value.name)
-	body.append("control", control)
-	busy.value = true
-	try {
-		inspection.value.photos.push(await postFleetData("upload_photo", body))
-	} finally {
-		busy.value = false
-	}
+	emit("validate", "validate_inspection", form)
 }
 
-const remove = photo => perform(async () => {
-	await postFleetData("remove_photo", { inspection: inspection.value.name, photo: photo.name })
-	inspection.value.photos = inspection.value.photos.filter(item => item.name !== photo.name)
+function showLocalChecklist() {
+	display({
+		phase: props.phase, photos: [], controls: props.mission.inspection_controls || [],
+		odometer: props.phase === "Departure" ? props.mission.departure_odometer : props.mission.arrival_odometer,
+		departure_odometer: props.phase === "Return" ? props.mission.departure_odometer : "",
+	})
+}
+
+onMounted(() => {
+	showLocalChecklist()
+	if (!props.correction) return
+	const entries = props.correction.entries
+	const form = new Map(entries)
+	odometer.value = form.get("odometer") || ""
+	observations.value = form.get("observations") || ""
+	const previous = JSON.parse(form.get("results") || "{}")
+	for (const code of Object.keys(results.value)) {
+		if (previous[code]) results.value[code] = previous[code]
+		localPhotos.value[code] = entries.filter(([key]) => key === "photo:" + code).map(([, file]) => file)
+	}
 })
+
 </script>
